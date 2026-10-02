@@ -9,6 +9,7 @@ import { AIDriver } from './ai.js';
 import { CARS, PARTS, SURFACES, MEDALS } from './data.js';
 import { clamp, damp, lerp, wrapAngle, formatTime, formatDelta } from './util.js';
 import { save } from './save.js';
+import { isTuned } from './debug.js';
 
 const DT = 1 / 120;
 const RESET_PENALTY = 5000;
@@ -129,6 +130,7 @@ export class Race {
     this.resize();
     this.state = 'countdown';
     this.countdown = 3.6;
+    this.cheated = isTuned() || !!app.debugAutopilot;
     this.lastBeep = 4;
     this.app.audio.setEngineActive(true);
   }
@@ -274,6 +276,7 @@ export class Race {
     }
 
     if (this.state === 'racing' && app.debugAutopilot) {
+      this.cheated = true;
       ctrl = (this._dbgAI ||= new AIDriver(this.track, this.phys)).input();
     }
     if (this.state === 'racing') {
@@ -441,6 +444,25 @@ export class Race {
     return `${n.dir > 0 ? 'gauche' : 'droite'} ${GRADE_WORDS[n.grade]}${n.label.endsWith('long') ? ' long' : ''}`;
   }
 
+  // --- Outils du panneau de debug.
+  teleport(s, speed = 0) {
+    const t = this.track, p = this.phys;
+    const pt = t.pointAt(clamp(s, t.start, t.finish + 20));
+    p.reset(pt.x, pt.y, pt.a, pt.h);
+    p.hint = pt.idx;
+    p.vx = speed;
+    this.camYaw = pt.a;
+    this._camInit = false;
+    this.skids.last.clear();
+  }
+
+  debugNextNote() {
+    const next = this.track.notes.find((n) => n.s > (this.s ?? 0) + 5);
+    this.teleport(next ? next.s - 40 : this.track.finish - 30, this.phys.speed);
+  }
+
+  debugFinish() { this.teleport(this.track.finish - 12, 15); }
+
   resetToRoad(penalize) {
     const p = this.phys, t = this.track;
     const q = t.nearest(p.x, p.y, p.hint);
@@ -473,13 +495,13 @@ export class Race {
   buildResult() {
     const total = this.finalTime;
     const prevBest = this.best;
-    const isBest = prevBest == null || total < prevBest;
+    const isBest = !this.cheated && (prevBest == null || total < prevBest);
     let medal = null;
     for (const m of this.medalTimes) if (total <= m.time) { medal = m; break; }
     return {
       key: this.key, stage: this.stage, time: total, prevBest, isBest, medal,
       medalTimes: this.medalTimes, resets: this.resets, hits: this.hits, penalty: this.penalty,
-      splits: this.splitTimes,
+      splits: this.splitTimes, cheated: this.cheated, car: this.car,
       ghost: isBest ? { car: this.car.id, cfg: this.cfg, time: total, frames: this.ghostRec } : null,
     };
   }
@@ -610,7 +632,11 @@ export class Race {
     const sh = this.shake * 0.25 + rough;
     const jitter = () => (Math.random() - 0.5) * sh;
 
-    if (this.cameraMode === 2) {
+    if (this.app.debug?.orbitCam) {
+      const a = this.visTime * 0.35;
+      cam.position.set(p.x + Math.cos(a) * 9, p.alt + 3.5, -(p.y + Math.sin(a) * 9));
+      cam.lookAt(p.x, p.alt + 0.8, -p.y);
+    } else if (this.cameraMode === 2) {
       // Vue capot.
       const local = new THREE.Vector3(this.car.dims.L * 0.1, this.model.roofY - 0.25, 0);
       const pos = g.localToWorld(local);

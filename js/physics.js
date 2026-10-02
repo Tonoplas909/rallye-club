@@ -4,6 +4,10 @@ import { SURFACES } from './data.js';
 import { clamp, lerp, damp } from './util.js';
 
 const G = 9.81;
+
+// Multiplicateurs réglables à chaud depuis le panneau de debug.
+export const TUNING = { grip: 1, power: 1, steer: 1, handbrake: 1, inertia: 1 };
+export const TUNING_DEFAULTS = { ...TUNING };
 const DRIVE_SPLIT = { FWD: [1, 0], RWD: [0, 1], AWD: [0.42, 0.58] };
 const HEIGHT_MODS = {
   low: { grip: 1.04, tarmac: 1.04, offroad: 1.25 },
@@ -66,7 +70,7 @@ export class CarPhysics {
     const vx = this.vx, vy = this.vy, r = this.r;
 
     // --- Direction : limitée avec la vitesse, sauf en contre-braquage.
-    let limit = car.steer / (1 + speed / 22);
+    let limit = (car.steer * TUNING.steer) / (1 + speed / 22);
     if (input.steer * vy > 0 && speed > 5) {
       const beta = Math.abs(Math.atan2(vy, Math.abs(vx)));
       limit = Math.max(limit, Math.min(car.steer, beta * 0.95 + 0.06));
@@ -89,7 +93,7 @@ export class CarPhysics {
       roll = lerp(roll, off.roll, p);
       B = off.B;
     }
-    mu *= car.grip * this.hmod.grip;
+    mu *= car.grip * this.hmod.grip * TUNING.grip;
 
     // --- Vertical : suit le sol, décolle si le sol tombe plus vite que la gravité.
     const ground = q.height;
@@ -130,7 +134,7 @@ export class CarPhysics {
       brake = 0;
     } else {
       if (throttle > 0.1 && vx < -0.5) { brake = throttle; throttle = 0; }
-      drive = throttle * Math.min(m * G * 1.3, this.power / Math.max(Math.abs(vx), 6));
+      drive = throttle * Math.min(m * G * 1.3, (this.power * TUNING.power) / Math.max(Math.abs(vx), 6));
     }
 
     let FxF = 0, FxR = 0, FyF = 0, FyR = 0;
@@ -154,7 +158,7 @@ export class CarPhysics {
       // Cercle de friction : l'effort longitudinal réduit l'adhérence latérale.
       const latF = FmaxF * Math.sqrt(1 - 0.45 * (FxF / FmaxF) ** 2);
       const kR = car.drive === 'RWD' ? 0.45 : 0.4;
-      const latR = FmaxR * Math.sqrt(1 - kR * (FxR / FmaxR) ** 2) * (hb ? 0.35 : 1.06);
+      const latR = FmaxR * Math.sqrt(1 - kR * (FxR / FmaxR) ** 2) * (hb ? clamp(0.35 / TUNING.handbrake, 0.05, 1) : 1.06);
 
       const vxa = Math.max(Math.abs(vx), 4);
       const alphaF = Math.atan2(vy + r * a, vxa) - this.steer * dir;
@@ -193,7 +197,7 @@ export class CarPhysics {
 
     let nvx = vx + (this.ax + r * vy) * dt;
     let nvy = vy + (this.ay - r * vx) * dt;
-    let nr = r + (torque / this.I) * dt;
+    let nr = r + (torque / (this.I * TUNING.inertia)) * dt;
 
     if (this.airborne) {
       nr *= 1 - 0.8 * dt;

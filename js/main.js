@@ -8,6 +8,8 @@ import { Race } from './race.js';
 import { Track } from './trackgen.js';
 import { Input } from './input.js';
 import { AudioFX, CoDriver } from './audio.js';
+import { DebugPanel } from './debug.js';
+import { VERSION, RELEASES } from './version.js';
 import { formatTime, formatDelta, hashString, mulberry32, todayKey } from './util.js';
 
 const $ = (id) => document.getElementById(id);
@@ -60,9 +62,11 @@ class App {
     this.input.bindTouch($('touch'));
 
     this.bindUI();
+    this.debug = new DebugPanel(this);
     this.resize();
     window.addEventListener('resize', () => this.resize());
     this.showScreen('menu');
+    this.setupReleaseNotes();
 
     // L'audio ne peut démarrer qu'après une interaction.
     const unlock = () => { this.audio.init(); window.removeEventListener('pointerdown', unlock); window.removeEventListener('keydown', unlock); };
@@ -93,7 +97,7 @@ class App {
     const dt = Math.min(this.clock.getDelta(), 0.1);
     this.time += dt;
     if (this.mode === 'race' && this.race) {
-      if (!this.paused && this.race.state !== 'loading') this.race.update(dt);
+      if (!this.paused && this.race.state !== 'loading') this.race.update(dt * this.debug.timeScale);
       if (this.paused && (this.input.consume('Escape') || this.input.consume('KeyP'))) this.resumeRace();
       this.race.render(this.renderer);
     } else {
@@ -101,7 +105,15 @@ class App {
       this.garage.render(this.renderer);
       if (this.input.consume('Escape') && this.screen !== 'menu') this.back();
     }
+    this.debug.frame(dt);
     this.input.endFrame();
+  }
+
+  // Réaffiche l'écran courant (après un changement fait depuis le panneau de debug).
+  refreshScreen() {
+    if (this.mode === 'race') return;
+    if (this.screen === 'garage') this.renderGarage();
+    else if (this.screen === 'stages') this.renderStages();
   }
 
   // ------------------------------------------------------------- écrans
@@ -172,6 +184,37 @@ class App {
     $('btn-res-garage').onclick = () => { $('screen-results').classList.add('hidden'); this.tab = 'cars'; this.exitRace('garage'); };
     $('btn-buy').onclick = () => this.confirmPurchase();
     $('btn-buy-cancel').onclick = () => this.revertPreview();
+  }
+
+  setupReleaseNotes() {
+    const label = $('btn-version');
+    label.textContent = `v${VERSION} · Nouveautés`;
+    let taps = [];
+    label.onclick = () => {
+      // 5 appuis rapides : panneau de debug (pratique sur mobile, sans clavier).
+      const now = performance.now();
+      taps = taps.filter((t) => now - t < 2000).concat(now);
+      if (taps.length >= 5) { taps = []; $('screen-notes').classList.add('hidden'); this.debug.toggle(true); return; }
+      this.openReleaseNotes();
+    };
+    $('btn-notes-close').onclick = () => $('screen-notes').classList.add('hidden');
+    const seen = save.data.seenVersion;
+    if (seen !== VERSION) {
+      save.data.seenVersion = VERSION;
+      save.persist();
+      // Pas de notes au tout premier lancement, seulement après une mise à jour.
+      if (seen || Object.keys(save.data.best).length) this.openReleaseNotes();
+    }
+  }
+
+  openReleaseNotes() {
+    $('notes-list').innerHTML = RELEASES.map((r) => `
+      <article class="release">
+        <h3>v${r.version} <small>${r.date.split('-').reverse().join('/')}</small></h3>
+        <div class="release-title">${r.title}</div>
+        <ul>${r.notes.map((n) => `<li>${n}</li>`).join('')}</ul>
+      </article>`).join('');
+    $('screen-notes').classList.remove('hidden');
   }
 
   openSettings() {
@@ -485,14 +528,15 @@ class App {
       save.data.splits[r.key] = r.splits;
       if (r.ghost) save.setGhost(r.key, r.ghost);
     }
-    save.data.finished[r.key] = true;
+    if (!r.cheated) save.data.finished[r.key] = true;
     save.addCoins(total);
 
     $('res-stage').textContent = `${st.country || ''} ${st.name} · ${save.selectedCar.name}`;
     $('res-medal').textContent = r.medal ? r.medal.icon : '🏁';
     $('res-time').textContent = formatTime(r.time);
     let sub = r.penalty ? `dont ${r.penalty / 1000} s de pénalités · ` : '';
-    if (r.prevBest == null) sub += 'Premier temps enregistré';
+    if (r.cheated) sub += '<span class="bad">Mode debug : chrono non enregistré</span>';
+    else if (r.prevBest == null) sub += 'Premier temps enregistré';
     else if (r.isBest) sub += `<span class="good">Nouveau record ! ${formatDelta(r.time - r.prevBest)}</span>`;
     else sub += `<span class="bad">Record : ${formatTime(r.prevBest)} (${formatDelta(r.time - r.prevBest)})</span>`;
     $('res-sub').innerHTML = sub;

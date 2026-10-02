@@ -239,3 +239,27 @@ body.touch-device .hud-speedo { bottom: auto; top: 175px; right: 14px; transform
   .stage-list { top: 96px; }
   .stages-head { top: 58px; }
 }
+
+/* ---------- Notes de version ---------- */
+.version-link { position: absolute; right: 40px; bottom: 22px; background: none; border: none; color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: underline dotted; }
+.version-link:hover { color: var(--text); }
+.notes { width: min(520px, calc(100% - 32px)); }
+#notes-list { display: flex; flex-direction: column; gap: 14px; }
+.release h3 { margin: 0; font-family: var(--display); font-style: italic; }
+.release h3 small { font-family: var(--ui); font-style: normal; font-weight: 600; font-size: 12px; color: var(--muted); margin-left: 6px; }
+.release-title { color: var(--accent); font-weight: 800; margin: 2px 0 4px; }
+.release ul { margin: 0; padding-left: 18px; color: #d4d9e2; font-size: 14px; line-height: 1.45; }
+
+/* ---------- Panneau de debug ---------- */
+#debug { position: fixed; top: 64px; right: 10px; z-index: 60; width: min(360px, calc(100% - 20px)); max-height: calc(100% - 20px); overflow-y: auto; background: rgba(8, 10, 14, 0.92); border: 1px solid #ff2bd6; border-radius: 12px; padding: 10px 12px; font-size: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+#debug header { display: flex; justify-content: space-between; align-items: center; color: #ff6ae4; letter-spacing: 0.1em; }
+#debug header button { background: none; border: none; color: var(--text); font-size: 16px; cursor: pointer; }
+#debug summary { cursor: pointer; font-weight: 800; margin: 8px 0 4px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
+#debug pre { margin: 0; font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; color: #cfe8ff; }
+.dbg-row { display: grid; grid-template-columns: 110px 1fr 46px; align-items: center; gap: 8px; margin: 4px 0; }
+.dbg-row input[type=checkbox] { justify-self: start; accent-color: #ff2bd6; }
+.dbg-row input[type=range] { accent-color: #ff2bd6; width: 100%; }
+.dbg-row output { text-align: right; font-variant-numeric: tabular-nums; }
+.dbg-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+#dbg-tuning .btn { margin-top: 4px; }
+body.dbg-nohud #hud { display: none; }

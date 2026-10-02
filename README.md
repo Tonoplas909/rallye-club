@@ -42,11 +42,26 @@ Version en ligne : **https://tonoplas909.github.io/rallye-club/**. Elle est repu
 
 La progression est enregistrée dans le `localStorage` du navigateur.
 
+## Panneau de debug
+
+Touche **F1** ou **²** (ou 5 appuis rapides sur le numéro de version, en bas à droite du menu). Le panneau propose :
+- des infos en direct (FPS, appels de dessin, vitesse, glisse, surface, position…) ;
+- des multiplicateurs de physique à chaud (adhérence, puissance, braquage, frein à main, inertie) ;
+- des triches (pièces, tout débloquer, pilote auto, virage suivant, fin de spéciale) ;
+- des options d'affichage (vitesse du temps, caméra orbitale, zones de collision, HUD masqué).
+
+Une spéciale courue avec une triche ou une physique modifiée n'enregistre ni record ni fantôme.
+
+## Notes de version
+
+Voir [CHANGELOG.md](CHANGELOG.md). À chaque version, mettre à jour `VERSION` et `RELEASES` dans `js/version.js`.
+
 ## Organisation du code
 
 ```
 index.html, css/style.css   interface (menus, HUD, garage, modales)
 js/main.js                  application, écrans, garage, économie
+js/debug.js, version.js     panneau de debug, notes de version
 js/race.js                  déroulé d'une spéciale (chrono, copilote, fantôme, caméra)
 js/physics.js               physique de la voiture (sans dépendance au rendu)
 js/trackgen.js              génération du tracé, du relief, des notes et du temps de référence
