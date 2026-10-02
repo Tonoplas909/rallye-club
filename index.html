@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d1016" />
+  <title>Rallye Club</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏁</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/addons/" } }
+  </script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- Barre du haut commune (menu, spéciales, garage) -->
+  <div id="topbar" class="hidden">
+    <button class="icon-btn" id="btn-back" title="Retour">‹</button>
+    <div id="topbar-title"></div>
+    <div class="spacer"></div>
+    <div class="coins" id="coins"><span class="coin-ico">🪙</span><span id="coins-val">0</span></div>
+    <button class="icon-btn" id="btn-settings" title="Paramètres">⚙</button>
+  </div>
+
+  <!-- Menu principal -->
+  <section id="screen-menu" class="screen">
+    <div class="logo">
+      <div class="logo-top">RALLYE</div>
+      <div class="logo-bottom">CLUB</div>
+    </div>
+    <div class="menu-car">
+      <div class="menu-car-name" id="menu-car-name"></div>
+      <div class="menu-car-desc" id="menu-car-desc"></div>
+    </div>
+    <div class="menu-buttons">
+      <button class="btn big primary" id="btn-play">COURIR <small>Choisir une spéciale</small></button>
+      <button class="btn big" id="btn-daily">DÉFI DU JOUR <small id="daily-sub"></small></button>
+      <button class="btn big" id="btn-garage">GARAGE <small>Voitures & personnalisation</small></button>
+    </div>
+    <div class="controls-help">
+      <span><kbd>↑</kbd> gaz</span><span><kbd>↓</kbd> frein / marche arr.</span><span><kbd>← →</kbd> direction</span>
+      <span><kbd>Espace</kbd> frein à main</span><span><kbd>R</kbd> remise en piste</span><span><kbd>C</kbd> caméra</span><span><kbd>Échap</kbd> pause</span>
+    </div>
+  </section>
+
+  <!-- Choix de la spéciale -->
+  <section id="screen-stages" class="screen hidden">
+    <div class="stages-head">
+      <div class="stages-car">Voiture : <b id="stages-car-name"></b> <button class="btn small" id="btn-stages-garage">Changer</button></div>
+    </div>
+    <div id="stage-list" class="stage-list"></div>
+  </section>
+
+  <!-- Garage -->
+  <section id="screen-garage" class="screen hidden">
+    <nav id="garage-tabs" class="garage-tabs"></nav>
+    <div id="garage-panel" class="garage-panel"></div>
+    <div id="garage-buy" class="garage-buy hidden">
+      <div class="buy-info"><div id="buy-name"></div><div id="buy-price"></div></div>
+      <button class="btn" id="btn-buy-cancel">Annuler</button>
+      <button class="btn primary" id="btn-buy">Acheter</button>
+    </div>
+  </section>
+
+  <!-- HUD course -->
+  <section id="hud" class="hidden">
+    <div class="hud-top-left">
+      <div id="hud-stage"></div>
+      <div id="hud-progress"><div id="hud-progress-fill"></div><div id="hud-ghost"></div></div>
+      <div id="hud-penalty"></div>
+    </div>
+    <div class="hud-top-center">
+      <div id="hud-time">0:00.000</div>
+      <div id="hud-delta"></div>
+      <div id="hud-notes"></div>
+    </div>
+    <div class="hud-top-right">
+      <canvas id="hud-minimap" width="170" height="170"></canvas>
+      <button class="icon-btn" id="btn-pause" title="Pause">❚❚</button>
+    </div>
+    <div id="hud-msg"></div>
+    <div class="hud-speedo">
+      <div class="speed-row"><span id="hud-speed">0</span><span class="unit">km/h</span></div>
+      <div class="rpm"><div id="hud-rpm"></div></div>
+      <div class="gear">Rapport <b id="hud-gear">N</b></div>
+    </div>
+    <div id="touch" class="touch hidden">
+      <div class="touch-left">
+        <button data-touch="left">◀</button>
+        <button data-touch="right">▶</button>
+      </div>
+      <div class="touch-right">
+        <button data-touch="hb" class="hb">FAM</button>
+        <button data-touch="brake" class="brake">FREIN</button>
+        <button data-touch="gas" class="gas">GAZ</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pause -->
+  <section id="screen-pause" class="modal hidden">
+    <div class="modal-box">
+      <h2>PAUSE</h2>
+      <button class="btn big primary" id="btn-resume">Reprendre</button>
+      <button class="btn big" id="btn-restart">Recommencer</button>
+      <button class="btn big" id="btn-quit">Abandonner</button>
+    </div>
+  </section>
+
+  <!-- Résultats -->
+  <section id="screen-results" class="modal hidden">
+    <div class="modal-box results">
+      <div class="res-stage" id="res-stage"></div>
+      <div class="res-medal" id="res-medal"></div>
+      <div class="res-time" id="res-time"></div>
+      <div class="res-sub" id="res-sub"></div>
+      <div class="res-targets" id="res-targets"></div>
+      <div class="res-rewards" id="res-rewards"></div>
+      <div class="res-buttons">
+        <button class="btn" id="btn-res-stages">Spéciales</button>
+        <button class="btn" id="btn-res-garage">Garage</button>
+        <button class="btn primary" id="btn-res-retry">Rejouer</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Paramètres -->
+  <section id="screen-settings" class="modal hidden">
+    <div class="modal-box">
+      <h2>PARAMÈTRES</h2>
+      <label class="toggle"><span>Son</span><input type="checkbox" id="set-sound" /></label>
+      <label class="toggle"><span>Copilote vocal</span><input type="checkbox" id="set-voice" /></label>
+      <label class="toggle"><span>Graphismes haute qualité</span><input type="checkbox" id="set-quality" /></label>
+      <p class="hint">Manette compatible : gâchettes pour gaz/frein, X ou RB frein à main, Y remise en piste.</p>
+      <button class="btn danger" id="btn-reset">Réinitialiser la progression</button>
+      <button class="btn big primary" id="btn-settings-close">Fermer</button>
+    </div>
+  </section>
+
+  <div id="loading" class="hidden"><div class="spinner"></div><div id="loading-text">Préparation de la spéciale…</div></div>
+  <div id="toast"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

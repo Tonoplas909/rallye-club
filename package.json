@@ -1,0 +1,12 @@
+{
+  "name": "rallye-club",
+  "version": "1.0.0",
+  "description": "Jeu de rallye 3D dans le navigateur, avec garage de personnalisation.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx --yes http-server -p 8080 -c-1 .",
+    "test": "node --test test/game.test.js"
+  },
+  "license": "MIT"
+}
