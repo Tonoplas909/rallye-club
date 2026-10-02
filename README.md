@@ -11,7 +11,7 @@ npm start            # http://localhost:8080
 # ou : python3 -m http.server 8080
 ```
 
-Le jeu fonctionne aussi tel quel sur GitHub Pages.
+Version en ligne : **https://tonoplas909.github.io/rallye-club/**. Elle est republiée automatiquement à chaque push par `.github/workflows/pages.yml`.
 
 ## Commandes
 
