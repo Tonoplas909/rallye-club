@@ -1,8 +1,19 @@
 // Version du jeu et notes de version affichées dans « Nouveautés ».
 // Garder CHANGELOG.md synchronisé avec cette liste.
-export const VERSION = '1.1.0';
+export const VERSION = '1.2.0';
 
 export const RELEASES = [
+  {
+    version: '1.2.0',
+    date: '2026-10-02',
+    title: 'Comptes en ligne',
+    notes: [
+      'Crée ton compte (bouton 👤 en haut) pour sauvegarder ta progression en ligne et la retrouver sur tous tes appareils.',
+      'Classement mondial pour chaque spéciale, défi du jour compris : ton meilleur temps y est envoyé à l’arrivée.',
+      'Le classement complet est consultable depuis la liste des spéciales (bouton 🏆).',
+      'Pseudo modifiable et réinitialisation du mot de passe par e-mail.',
+    ],
+  },
   {
     version: '1.1.0',
     date: '2026-10-02',

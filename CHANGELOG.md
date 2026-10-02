@@ -2,6 +2,12 @@
 
 Les mêmes notes s'affichent dans le jeu (menu → « Nouveautés »). La source est `js/version.js`.
 
+## v1.2.0 — 02/10/2026 · Comptes en ligne
+- Crée ton compte (bouton 👤 en haut) pour sauvegarder ta progression en ligne et la retrouver sur tous tes appareils.
+- Classement mondial pour chaque spéciale, défi du jour compris : ton meilleur temps y est envoyé à l'arrivée.
+- Le classement complet est consultable depuis la liste des spéciales (bouton 🏆).
+- Pseudo modifiable et réinitialisation du mot de passe par e-mail.
+
 ## v1.1.0 — 02/10/2026 · En ligne et outils de test
 - Le jeu est jouable directement dans le navigateur via GitHub Pages.
 - Nouvel écran « Nouveautés » avec les notes de version, ouvert automatiquement après une mise à jour.

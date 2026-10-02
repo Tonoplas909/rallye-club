@@ -263,3 +263,38 @@ body.touch-device .hud-speedo { bottom: auto; top: 175px; right: 14px; transform
 .dbg-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
 #dbg-tuning .btn { margin-top: 4px; }
 body.dbg-nohud #hud { display: none; }
+
+/* ---------- Compte en ligne ---------- */
+.account-btn { display: flex; align-items: center; gap: 6px; height: 42px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-weight: 800; cursor: pointer; max-width: 200px; }
+.account-btn .acc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-btn.synced { border-color: rgba(61, 220, 132, 0.5); }
+.account-btn.error { border-color: var(--bad); }
+.account form { display: flex; flex-direction: column; gap: 8px; }
+.account input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: #0d1118; color: var(--text); font: 600 15px var(--ui); user-select: text; }
+.account input:focus { outline: none; border-color: var(--accent); }
+.acc-links { display: flex; justify-content: space-between; font-size: 13px; margin-top: 4px; }
+.acc-links a, .res-board a { color: var(--accent); cursor: pointer; text-decoration: underline; }
+.acc-msg { font-size: 13px; font-weight: 700; min-height: 18px; }
+.acc-msg.good, .hint.good { color: var(--good); }
+.acc-msg.bad, .hint.bad { color: var(--bad); }
+.acc-profile { display: flex; align-items: center; gap: 12px; }
+.acc-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--panel-2); display: grid; place-items: center; font-size: 26px; border: 2px solid var(--accent); }
+.acc-pseudo { font-family: var(--display); font-style: italic; font-size: 22px; }
+.account form.acc-inline { flex-direction: row; }
+.acc-status { font-size: 13px; color: var(--muted); font-weight: 700; }
+.acc-status.synced { color: var(--good); }
+.acc-status.error { color: var(--bad); }
+
+/* ---------- Classements ---------- */
+.board-box { width: min(480px, calc(100% - 32px)); }
+.board { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.board th { text-align: left; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 6px; }
+.board td { padding: 6px; border-top: 1px solid var(--line); }
+.board td:last-child, .board th:last-child { text-align: right; }
+.board tr.me td { color: var(--accent); font-weight: 800; }
+.board tr.gap td { text-align: center; color: var(--muted); border: none; padding: 0; }
+.res-board { text-align: left; }
+.res-board h4 { margin: 6px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.spinner.small { width: 24px; height: 24px; border-width: 3px; margin: 10px auto; }
+.stage-card .board-link { position: absolute; right: 12px; bottom: 12px; }
+#account-body { display: flex; flex-direction: column; gap: 10px; }

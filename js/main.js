@@ -9,6 +9,8 @@ import { Track } from './trackgen.js';
 import { Input } from './input.js';
 import { AudioFX, CoDriver } from './audio.js';
 import { DebugPanel } from './debug.js';
+import { Online } from './online.js';
+import { AccountUI } from './accountUI.js';
 import { VERSION, RELEASES } from './version.js';
 import { formatTime, formatDelta, hashString, mulberry32, todayKey } from './util.js';
 
@@ -63,6 +65,8 @@ class App {
 
     this.bindUI();
     this.debug = new DebugPanel(this);
+    this.online = new Online();
+    this.account = new AccountUI(this, this.online);
     this.resize();
     window.addEventListener('resize', () => this.resize());
     this.showScreen('menu');
@@ -201,7 +205,7 @@ class App {
     const seen = save.data.seenVersion;
     if (seen !== VERSION) {
       save.data.seenVersion = VERSION;
-      save.persist();
+      save.persist(false);
       // Pas de notes au tout premier lancement, seulement après une mise à jour.
       if (seen || Object.keys(save.data.best).length) this.openReleaseNotes();
     }
@@ -252,7 +256,9 @@ class App {
       <p>${stage.desc}</p>
       <div class="medals">${medals}</div>
       <div class="best">Record : <b>${best != null ? formatTime(best) : '—'}</b></div>
-      ${unlocked ? '' : `<div class="lock">🔒 Termine « ${STAGES[i - 1].name} » pour débloquer</div>`}`;
+      ${unlocked ? '' : `<div class="lock">🔒 Termine « ${STAGES[i - 1].name} » pour débloquer</div>`}
+      ${this.online.configured ? '<button class="btn small board-link">🏆 Classement</button>' : ''}`;
+    el.querySelector('.board-link')?.addEventListener('click', (e) => { e.stopPropagation(); this.account.openBoard(stage); });
     el.onclick = () => {
       if (!unlocked) { this.toast('Spéciale verrouillée', true); return; }
       this.startRace(stage);
@@ -544,6 +550,7 @@ class App {
     $('res-rewards').innerHTML = rewards.map(([k, v], i) => `<div class="r" style="animation-delay:${0.15 + i * 0.18}s"><span>${k}</span><span>+${v} 🪙</span></div>`).join('')
       + `<div class="r total" style="animation-delay:${0.15 + rewards.length * 0.18}s"><span>Total</span><span>+${total} 🪙</span></div>`;
     $('screen-results').classList.remove('hidden');
+    this.account.afterRace(r);
     this.audio.coin();
     this.updateCoins(true);
   }

@@ -23,12 +23,14 @@ function freshSave() {
     finished: {},
     daily: {},
     seenVersion: null,
+    updatedAt: 0,
     settings: { sound: true, voice: true, quality: 'high', camera: 0 },
   };
 }
 
 class Save {
   constructor() {
+    this.listeners = [];
     this.data = freshSave();
     try {
       const raw = localStorage.getItem(KEY);
@@ -42,8 +44,19 @@ class Save {
     }
   }
 
-  persist() {
+  // touch=false : écriture locale sans marquer la sauvegarde comme modifiée (ex. après une fusion cloud).
+  persist(touch = true) {
+    if (touch) this.data.updatedAt = Date.now();
     try { localStorage.setItem(KEY, JSON.stringify(this.data)); } catch (e) { /* stockage indisponible */ }
+    if (touch) for (const fn of this.listeners) fn(this.data);
+  }
+
+  onChange(fn) { this.listeners.push(fn); }
+
+  // Remplace la progression (fusion avec le cloud) en gardant les réglages de l'appareil.
+  replace(data) {
+    this.data = { ...freshSave(), ...data, settings: this.data.settings, seenVersion: this.data.seenVersion };
+    this.persist(false);
   }
 
   reset() {
@@ -101,7 +114,7 @@ class Save {
   }
 
   get settings() { return this.data.settings; }
-  setSetting(k, v) { this.data.settings[k] = v; this.persist(); }
+  setSetting(k, v) { this.data.settings[k] = v; this.persist(false); }
 
   ghost(stageKey) {
     try { return JSON.parse(localStorage.getItem(GHOST_KEY + stageKey)); } catch (e) { return null; }

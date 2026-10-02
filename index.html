@@ -19,6 +19,7 @@
     <button class="icon-btn" id="btn-back" title="Retour">‹</button>
     <div id="topbar-title"></div>
     <div class="spacer"></div>
+    <button class="account-btn hidden" id="btn-account" title="Compte en ligne"></button>
     <div class="coins" id="coins"><span class="coin-ico">🪙</span><span id="coins-val">0</span></div>
     <button class="icon-btn" id="btn-settings" title="Paramètres">⚙</button>
   </div>
@@ -118,6 +119,7 @@
       <div class="res-sub" id="res-sub"></div>
       <div class="res-targets" id="res-targets"></div>
       <div class="res-rewards" id="res-rewards"></div>
+      <div class="res-board" id="res-board"></div>
       <div class="res-buttons">
         <button class="btn" id="btn-res-stages">Spéciales</button>
         <button class="btn" id="btn-res-garage">Garage</button>
@@ -136,6 +138,24 @@
       <p class="hint">Manette compatible : gâchettes pour gaz/frein, X ou RB frein à main, Y remise en piste.</p>
       <button class="btn danger" id="btn-reset">Réinitialiser la progression</button>
       <button class="btn big primary" id="btn-settings-close">Fermer</button>
+    </div>
+  </section>
+
+  <!-- Compte en ligne -->
+  <section id="screen-account" class="modal hidden">
+    <div class="modal-box account">
+      <h2 id="account-title">CONNEXION</h2>
+      <div id="account-body"></div>
+      <button class="btn" id="btn-account-close">Fermer</button>
+    </div>
+  </section>
+
+  <!-- Classement d'une spéciale -->
+  <section id="screen-board" class="modal hidden">
+    <div class="modal-box board-box">
+      <h2 id="board-title">CLASSEMENT</h2>
+      <div id="board-body"></div>
+      <button class="btn big primary" id="btn-board-close">Fermer</button>
     </div>
   </section>
 
