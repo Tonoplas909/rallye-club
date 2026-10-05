@@ -28,7 +28,8 @@ Version en ligne : **https://tonoplas909.github.io/rallye-club/**. Elle est repu
 ## Contenu
 
 **Course**
-- 6 spéciales générées de façon procédurale (toujours le même tracé pour une même spéciale) : terre des Vosges, asphalte corse avec glissières, neige suédoise avec murs de neige, dunes marocaines avec grands sauts, boue galloise sous la pluie, Monte-Carlo de nuit avec phares.
+- 11 spéciales générées de façon procédurale (toujours le même tracé pour une même spéciale) : terre des Vosges, asphalte corse avec glissières, neige suédoise avec murs de neige, dunes marocaines avec grands sauts, boue galloise sous la pluie, Monte-Carlo de nuit, Monte-Carlo de jour avec plaques de neige et de verglas, Col de Turini, lacs et sauts de Finlande, Safari Kenya, Japon.
+- Météo dynamique (la pluie peut arriver en pleine spéciale et mouille progressivement la route) et spéciales de nuit dans tous les pays.
 - **Défi du jour** : une nouvelle spéciale chaque jour, avec 500 🪙 de bonus à la première arrivée.
 - Physique arcade : transferts de charge, cercle d'adhérence, sous-virage et survirage, frein à main, sauts sur les bosses, adhérence propre à chaque surface, pénalité hors piste.
 - Notes du copilote affichées à l'écran et lues à voix haute en français (« gauche trois », « épingle droite », « saut »…).
@@ -42,12 +43,12 @@ Version en ligne : **https://tonoplas909.github.io/rallye-club/**. Elle est repu
 - Logique dans `js/gameplay.js` (module pur, testé).
 
 **Carrière**
-- Championnat de 6 rallyes de 3 spéciales face à 9 pilotes IA, avec un niveau et une surface favorite propres à chacun.
+- Championnat de 9 rallyes de 3 spéciales face à 9 pilotes IA, avec un niveau et une surface favorite propres à chacun.
 - Classement général cumulé, points aux 10 premiers, Power Stage sur la dernière spéciale, 3 niveaux de difficulté, nouveaux tracés à chaque saison.
 - La logique (calendrier, temps IA, classements, points) est dans `js/career.js`, testée sans navigateur. L'interface est dans `js/careerUI.js`.
 
 **Garage (façon Drift Club)**
-- 6 voitures : traction, propulsion et 4x4, chacune avec ses caractéristiques (de la Fennec R2 à la Vortex WRC).
+- 9 voitures : traction, propulsion et 4x4, chacune avec ses caractéristiques (de la Fennec R2 à la Vortex WRC, en passant par une Groupe B et un pick-up de raid).
 - Personnalisation propre à chaque voiture : 16 peintures, 5 finitions (brillant, mat, métallisé, nacré, chrome), 9 livrées avec couleur secondaire et numéro de course, 5 modèles de jantes avec leur couleur, ailerons, capots, toit (écope, galerie avec roue de secours), bavettes, longues portées (utiles de nuit), garde au sol (effet sur l'adhérence), teinte des vitres, couleur des projections (jusqu'à l'arc-en-ciel), néons et échappement anti-lag qui crache des flammes.
 - Aperçu avant achat et économie de pièces : on en gagne à chaque arrivée, avec des bonus pour les médailles, les records et les spéciales sans faute.
 

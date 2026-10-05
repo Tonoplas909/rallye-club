@@ -1,8 +1,22 @@
 // Version du jeu et notes de version affichées dans « Nouveautés ».
 // Garder CHANGELOG.md synchronisé avec cette liste.
-export const VERSION = '1.4.0';
+export const VERSION = '1.5.0';
 
 export const RELEASES = [
+  {
+    version: '1.5.0',
+    date: '2026-10-05',
+    title: 'Nouveaux pays, météo et Monte-Carlo',
+    notes: [
+      'Monte-Carlo de jour : asphalte avec des plaques de neige et de verglas dans les virages à l’ombre, annoncées par le copilote. Le choix des pneus devient un vrai dilemme.',
+      'Col de Turini : la montée légendaire en 17 épingles vers le col enneigé, devant une foule immense.',
+      '3 nouveaux pays : Finlande (terre ultra-rapide, lacs et sauts géants), Safari Kenya (pistes rouges de la savane) et Japon (routes de montagne entre les cerisiers).',
+      'Météo dynamique : la pluie peut arriver en pleine spéciale. Le ciel s’assombrit, la route devient glissante et les pneus Pluie prennent tout leur sens.',
+      'Spéciales de nuit possibles dans tous les pays, en carrière comme au défi du jour.',
+      '3 nouvelles voitures : Comète 1800 (propulsion des années 70), Kodiak Raid (pick-up 4x4) et Lionne T16 (Groupe B).',
+      'Le championnat passe à 9 rallyes. Le rallye Monte-Carlo enchaîne désormais une spéciale de jour, le Col de Turini et une spéciale de nuit.',
+    ],
+  },
   {
     version: '1.4.0',
     date: '2026-10-05',

@@ -32,10 +32,24 @@ const SHAPES = {
     floor: 0.24,
   },
   suv: {
+    blackFlares: true,
     top: [[-1, 0.5], [-1, 1.15], [-0.97, 1.2], [0.4, 1.18], [0.95, 1.06], [1, 0.98], [1, 0.48]],
     cabin: [[-0.96, 1.18], [-0.93, 1.86], [0.2, 1.88], [0.44, 1.17]],
     spoiler: { x: -0.92, y: 1.88, roof: true },
     floor: 0.42,
+  },
+  classic: {
+    top: [[-1, 0.42], [-1, 0.88], [-0.97, 0.94], [-0.6, 0.95], [0.42, 0.93], [0.97, 0.88], [1, 0.82], [1, 0.42]],
+    cabin: [[-0.6, 0.93], [-0.48, 1.4], [0.16, 1.41], [0.4, 0.92]],
+    spoiler: { x: -0.92, y: 0.96, roof: false },
+    floor: 0.3,
+  },
+  pickup: {
+    top: [[-1, 0.62], [-1, 1.12], [-0.97, 1.15], [0.38, 1.15], [0.95, 1.05], [1, 0.95], [1, 0.6]],
+    cabin: [[-0.12, 1.13], [-0.09, 1.82], [0.2, 1.84], [0.42, 1.13]],
+    spoiler: { x: -0.1, y: 1.84, roof: true },
+    floor: 0.5,
+    blackFlares: true,
   },
   wrc: {
     top: [[-1, 0.34], [-1, 0.9], [-0.97, 0.98], [0.36, 0.98], [0.93, 0.78], [1, 0.66], [1, 0.32]],
@@ -234,10 +248,10 @@ export function buildCar(car, cfg, opts = {}) {
   };
 
   // Élargisseurs d'ailes (WRC / raid).
-  if (shape.flares || car.shape === 'suv') {
+  if (shape.flares || shape.blackFlares) {
     for (const ax of [axleF, axleR]) for (const sz of [-1, 1]) {
-      const fl = new THREE.Mesh(new THREE.TorusGeometry(archR + 0.02, 0.07, 6, 16, Math.PI), car.shape === 'suv' ? blackPlastic() : paint);
-      if (car.shape !== 'suv') { const g = fl.geometry.toNonIndexed(); fl.geometry = g; projectLiveryUV(g, bounds, new THREE.Matrix4().makeTranslation(ax, floor, sz * (W / 2 - 0.02))); }
+      const fl = new THREE.Mesh(new THREE.TorusGeometry(archR + 0.02, 0.07, 6, 16, Math.PI), shape.blackFlares ? blackPlastic() : paint);
+      if (!shape.blackFlares) { const g = fl.geometry.toNonIndexed(); fl.geometry = g; projectLiveryUV(g, bounds, new THREE.Matrix4().makeTranslation(ax, floor, sz * (W / 2 - 0.02))); }
       fl.position.set(ax, floor, sz * (W / 2 - 0.02));
       fl.scale.z = 1.6;
       body.add(fl);

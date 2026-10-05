@@ -1,5 +1,4 @@
 // Pilote automatique simple : sert pour la démo du menu et pour les tests.
-import { SURFACES } from './data.js';
 import { clamp, wrapAngle } from './util.js';
 import { SAMPLE } from './trackgen.js';
 
@@ -27,8 +26,11 @@ export class AIDriver {
     const steer = clamp(delta / limit, -1, 1);
 
     // Vitesse cible : la plus contraignante des courbures à venir.
-    const mu = SURFACES[t.surface].mu * p.car.grip * this.skill * 0.85;
-    const dec = 7 * mu;
+    const k0 = p.car.grip * this.skill * 0.85;
+    // Freinage calculé sur l'adhérence la plus faible à venir (verglas, neige).
+    let muMin = t.sampleMu(Math.max(p.hint, 0));
+    for (let i = Math.max(p.hint, 0); i < Math.min(t.n, p.hint + 60); i++) muMin = Math.min(muMin, t.sampleMu(i));
+    const dec = 7 * muMin * k0;
     const horizon = (speed * speed) / (2 * dec) + 25;
     let vt = p.car.top;
     const i0 = Math.max(p.hint, 0);
@@ -36,7 +38,7 @@ export class AIDriver {
     for (let i = i0; i <= i1; i++) {
       const k = Math.abs(t.k[i]);
       if (k < 1e-4) continue;
-      const vmax = Math.sqrt((mu * 9.81) / k);
+      const vmax = Math.sqrt((t.sampleMu(i) * k0 * 9.81) / k);
       const dist = (i - i0) * SAMPLE;
       vt = Math.min(vt, Math.sqrt(vmax * vmax + 2 * dec * Math.max(dist - 6, 0)));
     }

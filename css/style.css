@@ -375,3 +375,5 @@ body.dbg-nohud #hud { display: none; }
 .tyre-btn.active { border-color: var(--accent); background: rgba(255,194,26,0.15); }
 .tyre-btn em { font-style: normal; font-size: 10px; color: var(--good); margin-left: 4px; }
 @media (max-width: 760px) { .svc-row { grid-template-columns: 100px 1fr 120px; } .svc-state { display: none; } }
+
+.note.grade--2 .ico { color: #9fd8ff; }

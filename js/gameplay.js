@@ -3,11 +3,15 @@
 
 // Adhérence relative de chaque gomme selon la surface.
 export const TYRES = {
-  terre: { name: 'Terre', icon: '🟤', desc: 'Polyvalent sur terre, boue et sable.', grip: { gravel: 1.0, mud: 1.0, sand: 1.0, grass: 1.0, snow: 0.86, tarmac: 0.9, wet: 0.88 } },
-  asphalte: { name: 'Asphalte', icon: '⚫', desc: 'Gomme tendre : très efficace sur route sèche.', grip: { tarmac: 1.07, wet: 0.84, gravel: 0.84, mud: 0.78, sand: 0.84, grass: 0.82, snow: 0.7 } },
-  pluie: { name: 'Pluie', icon: '🔵', desc: 'Évacue l’eau sur asphalte mouillé.', grip: { wet: 1.08, tarmac: 0.97, gravel: 0.92, mud: 0.92, sand: 0.88, grass: 0.9, snow: 0.82 } },
-  neige: { name: 'Neige cloutés', icon: '❄️', desc: 'Clous pour mordre la glace et la neige.', grip: { snow: 1.18, tarmac: 0.84, wet: 0.84, gravel: 0.94, mud: 0.94, sand: 0.88, grass: 0.94 } },
+  terre: { name: 'Terre', icon: '🟤', desc: 'Polyvalent sur terre, boue et sable.', grip: { gravel: 1.0, mud: 1.0, sand: 1.0, grass: 1.0, snow: 0.86, tarmac: 0.9, wet: 0.88, ice: 0.85 } },
+  asphalte: { name: 'Asphalte', icon: '⚫', desc: 'Gomme tendre : très efficace sur route sèche.', grip: { tarmac: 1.07, wet: 0.84, gravel: 0.84, mud: 0.78, sand: 0.84, grass: 0.82, snow: 0.7, ice: 0.62 } },
+  pluie: { name: 'Pluie', icon: '🔵', desc: 'Évacue l’eau sur asphalte mouillé.', grip: { wet: 1.08, tarmac: 0.97, gravel: 0.92, mud: 0.92, sand: 0.88, grass: 0.9, snow: 0.82, ice: 0.72 } },
+  neige: { name: 'Neige cloutés', icon: '❄️', desc: 'Clous pour mordre la glace et la neige.', grip: { snow: 1.18, tarmac: 0.84, wet: 0.84, gravel: 0.94, mud: 0.94, sand: 0.88, grass: 0.94, ice: 1.4 } },
 };
+
+// Perte d'adhérence de la surface quand elle est mouillée (wet de 0 à 1).
+const WET_MU = { tarmac: 0.78, gravel: 0.93, mud: 0.88, sand: 1.02, snow: 0.96, grass: 0.88, ice: 0.9 };
+export const wetFactor = (surface, wet) => 1 + ((WET_MU[surface] ?? 0.9) - 1) * (wet || 0);
 
 export function recommendedTyre(surface, wet = false) {
   if (surface === 'snow') return 'neige';

@@ -10,6 +10,11 @@ import { TYRES, PARTS_DAMAGE, recommendedTyre, repairCost, repair, damageLabel }
 
 const $ = (id) => document.getElementById(id);
 const ord = (n) => (n === 1 ? '1er' : `${n}e`);
+const weatherIcon = (s) => `${s.night ? '🌙' : ''}${{ rain: '☔', changing: '⛅' }[s.weather] || ''}`;
+const forecast = (s) => {
+  const w = { clear: '☀️ Temps sec', rain: '☔ Pluie sur toute la spéciale', changing: '⛅ Pluie attendue en cours de spéciale' }[s.weather || 'clear'];
+  return `Météo : ${w}${s.night ? ' · 🌙 de nuit' : ''}`;
+};
 
 export class CareerUI {
   constructor(app) {
@@ -70,7 +75,7 @@ export class CareerUI {
     return `
       <div class="career-welcome">
         <h2>Championnat Rallye Club</h2>
-        <p>6 rallyes de 3 spéciales face à 9 pilotes. Les temps s'additionnent au classement général. Les 10 premiers marquent des points (25, 18, 15…), et la dernière spéciale de chaque rallye, la Power Stage, rapporte 3, 2 et 1 points bonus.</p>
+        <p>${CALENDAR.length} rallyes de 3 spéciales face à 9 pilotes. Les temps s'additionnent au classement général. Les 10 premiers marquent des points (25, 18, 15…), et la dernière spéciale de chaque rallye, la Power Stage, rapporte 3, 2 et 1 points bonus.</p>
         <p>Pas de seconde chance : une spéciale ne se recourt pas. En cas d'abandon, tu reçois le temps du plus lent plus une minute.</p>
         <h4>Difficulté</h4>
         <div class="diff-row">${diffs}</div>
@@ -97,7 +102,7 @@ export class CareerUI {
     const list = stages.map((s, k) => {
       const t = r?.times[PLAYER][k];
       const rank = t != null ? stageRanking(r, k).find((x) => x.id === PLAYER).pos : null;
-      return `<li class="${r && k === r.stage ? 'next' : ''}"><span>${s.name}${s.powerStage ? ' <em>Power Stage</em>' : ''}</span><span>${(s.length / 1000).toFixed(1)} km</span><span>${t != null ? `${formatTime(t)} · ${ord(rank)}` : ''}</span></li>`;
+      return `<li class="${r && k === r.stage ? 'next' : ''}"><span>${s.name}${s.powerStage ? ' <em>Power Stage</em>' : ''} ${weatherIcon(s)}</span><span>${(s.length / 1000).toFixed(1)} km</span><span>${t != null ? `${formatTime(t)} · ${ord(rank)}` : ''}</span></li>`;
     }).join('');
     const service = r ? this.serviceHtml(r, stages[r.stage]) : '';
     const gc = r && r.stage > 0 ? `<h4>Classement général après ES${r.stage}</h4>${this.table(generalClassification(r, r.stage - 1), 'gap')}` : '<p class="hint">Le classement général apparaîtra après la première spéciale.</p>';
@@ -111,7 +116,7 @@ export class CareerUI {
 
   // Parc d'assistance : réparations (budget en minutes) et choix des pneus pour la prochaine spéciale.
   serviceHtml(r, next) {
-    const rec = recommendedTyre(next.surface, next.wet);
+    const rec = recommendedTyre(next.surface, next.weather === 'rain');
     const tyre = r.tyre || rec;
     const tyres = Object.entries(TYRES).map(([id, t]) => `<button class="tyre-btn ${tyre === id ? 'active' : ''}" data-tyre="${id}" title="${t.desc}">${t.icon} ${t.name}${id === rec ? ' <em>conseillé</em>' : ''}</button>`).join('');
     const parts = Object.entries(PARTS_DAMAGE).map(([k, def]) => {
@@ -126,6 +131,7 @@ export class CareerUI {
       <h4>Parc d'assistance · <b>${r.service} min</b> restantes</h4>
       ${parts}
       <h4>Pneus pour ${next.name} (${SURFACES[next.surface].name.toLowerCase()})</h4>
+      <div class="hint forecast">${forecast(next)}</div>
       <div class="tyre-row">${tyres}</div>
     </div>`;
   }
@@ -203,7 +209,7 @@ export class CareerUI {
     const c = this.career;
     const r = c.rally;
     const st = rallyStages(r.id, c.season)[r.stage];
-    this.app.startRace(st, { career: true, car: this.rallyCar(), tyre: r.tyre || recommendedTyre(st.surface, st.wet), damage: r.damage });
+    this.app.startRace(st, { career: true, car: this.rallyCar(), tyre: r.tyre || recommendedTyre(st.surface, st.weather === 'rain'), damage: r.damage });
   }
 
   // ------------------------------------------------------------- fin d'une spéciale

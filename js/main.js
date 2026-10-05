@@ -1,7 +1,7 @@
 // Point d'entrée : rendu, écrans, garage, enchaînement des courses.
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { CARS, COLORS, PARTS, STAGES, MEDALS, SURFACES, GARAGE_TABS, DAILY_SURFACES, SURFACE_THEME, colorHex } from './data.js';
+import { CARS, COLORS, PARTS, STAGES, MEDALS, SURFACES, GARAGE_TABS, DAILY_SURFACES, DAILY_THEMES, colorHex } from './data.js';
 import { save } from './save.js';
 import { Garage } from './garage.js';
 import { Race } from './race.js';
@@ -27,9 +27,13 @@ function dailyStage() {
   const h = hashString(`rallye-${key}`);
   const rng = mulberry32(h);
   const surface = DAILY_SURFACES[h % DAILY_SURFACES.length];
+  const themes = DAILY_THEMES[surface];
+  const theme = themes[Math.floor(rng() * themes.length)];
   const [y, m, d] = key.split('-');
+  const wr = rng();
+  const weather = surface === 'sand' || surface === 'snow' ? 'clear' : wr < 0.2 ? 'rain' : wr < 0.4 ? 'changing' : 'clear';
   return {
-    id: `daily-${key}`, name: 'Défi du jour', country: '📅', surface, theme: SURFACE_THEME[surface],
+    id: `daily-${key}`, name: 'Défi du jour', country: '📅', surface, theme, weather, night: rng() < 0.2,
     length: 2200 + Math.floor(rng() * 800), seed: h % 100000, hairpin: 0.03 + rng() * 0.15, twist: 0.4 + rng() * 0.45,
     reward: 350, daily: true, desc: `Spéciale unique du ${d}/${m}/${y}. +500 🪙 à la première arrivée du jour.`,
   };
@@ -273,7 +277,7 @@ class App {
       ${won ? `<div class="won">${won}</div>` : ''}
       <div>${stage.country}</div>
       <h3>${stage.name}</h3>
-      <div class="meta"><span class="badge">${SURFACES[stage.surface].name}</span><span class="badge">${(stage.length / 1000).toFixed(1)} km</span>${stage.night ? '<span class="badge">🌙 Nuit</span>' : ''}<span class="badge">+${stage.reward} 🪙</span></div>
+      <div class="meta"><span class="badge">${SURFACES[stage.surface].name}</span><span class="badge">${(stage.length / 1000).toFixed(1)} km</span>${stage.night ? '<span class="badge">🌙 Nuit</span>' : ''}${stage.weather === 'rain' ? '<span class="badge">☔ Pluie</span>' : stage.weather === 'changing' ? '<span class="badge">⛅ Variable</span>' : ''}<span class="badge">+${stage.reward} 🪙</span></div>
       <p>${stage.desc}</p>
       <div class="medals">${medals}</div>
       <div class="best">Record : <b>${best != null ? formatTime(best) : '—'}</b></div>

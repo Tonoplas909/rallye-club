@@ -13,6 +13,13 @@ export const CARS = [
     defaults: { paint: 'blanc', livery: 'stripes', livery2: 'rouge', rims: 'branches', rimColor: 'noir', spoiler: 'lip' },
   },
   {
+    id: 'comete', name: 'Comète 1800', price: 1200, shape: 'classic',
+    desc: 'Berline propulsion des années 70. Peu puissante mais très joueuse.',
+    drive: 'RWD', power: 110, mass: 960, top: 45, grip: 0.95, steer: 0.63,
+    dims: { L: 4.2, W: 1.68, wheelR: 0.3, wheelbase: 2.5, track: 1.4 },
+    defaults: { paint: 'orange', livery: 'stripes', livery2: 'noir', rims: 'tole', rimColor: 'blanc', spoiler: 'none', lights: 'pod2', mudflaps: 'on' },
+  },
+  {
     id: 'berlinette', name: 'Berlinette A1', price: 2000, shape: 'coupe',
     desc: 'Légende alpine des années 70. Légère, propulsion, vive en épingle.',
     drive: 'RWD', power: 135, mass: 760, top: 49, grip: 0.97, steer: 0.66,
@@ -39,6 +46,20 @@ export const CARS = [
     drive: 'AWD', power: 230, mass: 1650, top: 52, grip: 1.0, steer: 0.55, offroad: 0.85,
     dims: { L: 4.5, W: 1.95, wheelR: 0.4, wheelbase: 2.75, track: 1.65 },
     defaults: { paint: 'sable', livery: 'camo', livery2: 'vert', rims: 'tole', rimColor: 'noir', spoiler: 'none', roof: 'rack', height: 'raised' },
+  },
+  {
+    id: 'kodiak', name: 'Kodiak Raid', price: 10000, shape: 'pickup',
+    desc: 'Pick-up de rallye-raid. Lourd mais increvable, à l’aise partout hors piste.',
+    drive: 'AWD', power: 265, mass: 1800, top: 52, grip: 1.0, steer: 0.54, offroad: 0.75,
+    dims: { L: 4.9, W: 2.0, wheelR: 0.42, wheelbase: 3.0, track: 1.72 },
+    defaults: { paint: 'rouge', livery: 'split', livery2: 'blanc', rims: 'tole', rimColor: 'noir', spoiler: 'none', roof: 'rack', height: 'raised', lights: 'bar' },
+  },
+  {
+    id: 'lionne', name: 'Lionne T16', price: 11000, shape: 'wrc',
+    desc: 'Monstre du Groupe B : moteur central, quatre roues motrices et une puissance folle.',
+    drive: 'AWD', power: 300, mass: 1000, top: 58, grip: 1.05, steer: 0.6,
+    dims: { L: 3.85, W: 1.82, wheelR: 0.32, wheelbase: 2.5, track: 1.58 },
+    defaults: { paint: 'blanc', livery: 'rally', livery2: 'bleu', rims: 'rallye', rimColor: 'blanc', spoiler: 'ducktail', lights: 'pod4' },
   },
   {
     id: 'vortex', name: 'Vortex WRC', price: 14000, shape: 'wrc',
@@ -237,6 +258,7 @@ export const SURFACES = {
   sand: { name: 'Sable', mu: 0.72, roll: 0.035, B: 8, dust: '#e0c38c', loose: 1.2 },
   mud: { name: 'Boue', mu: 0.62, roll: 0.03, B: 8, dust: '#5a4630', loose: 1.1 },
   grass: { name: 'Herbe', mu: 0.55, roll: 0.06, B: 7, dust: '#6b5a3a', loose: 0.8 },
+  ice: { name: 'Verglas', mu: 0.34, roll: 0.01, B: 11, dust: '#e6f1ff', loose: 0.2 },
 };
 
 // --- Spéciales --------------------------------------------------------------
@@ -263,7 +285,7 @@ export const STAGES = [
   },
   {
     id: 'galles', name: 'Forêts Galloises', country: '🏴', surface: 'mud', theme: 'wales',
-    length: 2700, seed: 5531, hairpin: 0.08, twist: 0.6, reward: 330,
+    length: 2700, seed: 5531, hairpin: 0.08, twist: 0.6, reward: 330, weather: 'rain',
     desc: 'Boue, brouillard et bosses traîtresses.',
   },
   {
@@ -271,10 +293,38 @@ export const STAGES = [
     length: 2800, seed: 6607, hairpin: 0.28, twist: 0.85, reward: 420, night: true,
     desc: 'Les lacets du Turini, de nuit. Les longues portées sont reines.',
   },
+  {
+    id: 'montecarlo-jour', name: 'Monte-Carlo de jour', country: '🇲🇨', surface: 'tarmac', theme: 'alps',
+    length: 2600, seed: 6719, hairpin: 0.22, twist: 0.8, reward: 440, patches: 0.4,
+    desc: 'Asphalte, neige et verglas dans les virages à l’ombre : le dilemme des pneus.',
+  },
+  {
+    id: 'turini', name: 'Col de Turini', country: '🇲🇨', surface: 'tarmac', theme: 'alps',
+    length: 2400, seed: 6817, hairpin: 0.42, twist: 0.9, reward: 460, patches: 0.3, patchRamp: true, tilt: 0.06, crowd: 2.5,
+    finishSign: 'COL DE TURINI · 1607 m',
+    desc: 'La montée légendaire en lacets vers le col enneigé, devant une foule immense.',
+  },
+  {
+    id: 'finlande', name: 'Mille Lacs de Finlande', country: '🇫🇮', surface: 'gravel', theme: 'finland',
+    length: 2800, seed: 7717, hairpin: 0.03, twist: 0.4, reward: 450,
+    desc: 'Terre ultra-rapide entre les lacs, et des sauts géants.',
+  },
+  {
+    id: 'kenya', name: 'Safari Kenya', country: '🇰🇪', surface: 'gravel', theme: 'kenya',
+    length: 3000, seed: 8803, hairpin: 0.04, twist: 0.45, reward: 480, roadWidth: 8.5, weather: 'changing',
+    desc: 'Pistes rouges de la savane. Gare aux orages soudains.',
+  },
+  {
+    id: 'japon', name: 'Rallye du Japon', country: '🇯🇵', surface: 'tarmac', theme: 'japan',
+    length: 2600, seed: 9901, hairpin: 0.2, twist: 0.85, reward: 500, weather: 'changing',
+    desc: 'Routes de montagne étroites entre les cerisiers, souvent sous la pluie.',
+  },
 ];
 
 export const DAILY_SURFACES = ['gravel', 'tarmac', 'snow', 'sand', 'mud'];
 export const SURFACE_THEME = { gravel: 'forest', tarmac: 'med', snow: 'snow', sand: 'desert', mud: 'wales' };
+// Thèmes possibles pour le défi du jour, par surface.
+export const DAILY_THEMES = { gravel: ['forest', 'finland', 'kenya'], tarmac: ['med', 'japan'], snow: ['snow'], sand: ['desert'], mud: ['wales'] };
 
 export const MEDALS = [
   { id: 'gold', name: 'Or', icon: '🥇', factor: 1.12, bonus: 300 },

@@ -44,3 +44,20 @@ test('moteur abîmé = moins de puissance, réglages cohérents', () => {
   const broken = speedAfter({ damage: { engine: 1, steering: 0, suspension: 0, pull: 1 } });
   assert.ok(broken < ok * 0.95, `${broken} vs ${ok}`);
 });
+
+test('les plaques de neige et de verglas existent et changent la surface de la route', async () => {
+  const { Track } = await import('../js/trackgen.js');
+  const { STAGES } = await import('../js/data.js');
+  for (const id of ['montecarlo-jour', 'turini']) {
+    const t = new Track(STAGES.find((s) => s.id === id));
+    assert.ok(t.patches.length > 0, `${id} sans plaques`);
+    for (const p of t.patches) {
+      assert.ok(Number.isFinite(p.s0) && Number.isFinite(p.s1) && p.s1 > p.s0, `${id} : plaque invalide`);
+      const mid = (p.s0 + p.s1) / 2;
+      assert.equal(t.roadSurfaceAt(mid), p.kind);
+      const pt = t.pointAt(mid);
+      assert.equal(t.query(pt.x, pt.y, pt.idx).surface, p.kind);
+    }
+    assert.ok(t.notes.some((n) => n.kind === 'patch'));
+  }
+});

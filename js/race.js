@@ -7,7 +7,7 @@ import { buildCar, poseCar } from './carModel.js';
 import { Particles, SkidMarks, Rain } from './effects.js';
 import { AIDriver } from './ai.js';
 import { CARS, PARTS, SURFACES, MEDALS } from './data.js';
-import { clamp, damp, lerp, wrapAngle, formatTime, formatDelta } from './util.js';
+import { clamp, damp, lerp, wrapAngle, formatTime, formatDelta, mulberry32 } from './util.js';
 import { save } from './save.js';
 import { isTuned } from './debug.js';
 import { recommendedTyre, freshDamage, applyImpact, applyLanding, PARTS_DAMAGE, TYRES } from './gameplay.js';
@@ -125,10 +125,17 @@ export class Race {
     const [sc, so] = SKID_COLORS[this.track.surface];
     this.skids = new SkidMarks(1600, sc, so);
     scene.add(this.skids.mesh);
-    if (th.rain && quality !== 'low') {
+    // Météo : sèche, pluie dès le départ, ou pluie qui arrive en cours de spéciale.
+    this.weather = this.track.weather;
+    this.rainOn = this.weather === 'rain';
+    this.rainK = this.rainOn ? 1 : 0;
+    if (this.weather === 'changing') this.rainAt = this.track.finish * (0.3 + mulberry32(st.seed * 17 + 3)() * 0.3);
+    if (this.weather !== 'clear' && quality !== 'low') {
       this.rain = new Rain();
+      this.rain.lines.visible = this.rainOn;
       scene.add(this.rain.lines);
     }
+    this.world.setWeather(scene, this.rainK);
     this.dustDef = PARTS.dust.find((d) => d.id === this.cfg.dust);
     this.flamesOn = this.cfg.exhaust === 'flames';
 
@@ -147,7 +154,8 @@ export class Race {
 
   // ---------------------------------------------------------------- HUD
   setupHud() {
-    $('hud-stage').textContent = `${this.stage.country || '📅'} ${this.stage.name}`;
+    const wx = { rain: ' ☔', changing: ' ⛅' }[this.weather] || '';
+    $('hud-stage').textContent = `${this.stage.country || '📅'} ${this.stage.name}${this.stage.night ? ' 🌙' : ''}${wx}`;
     $('hud-delta').textContent = '';
     $('hud-msg').textContent = '';
     $('hud-penalty').textContent = '';
@@ -199,7 +207,7 @@ export class Race {
     for (const n of list) {
       const el = document.createElement('div');
       el.className = `note grade-${n.grade}`;
-      let icon = '⌒';
+      let icon = n.kind === 'patch' ? (n.patch === 'ice' ? '⚠' : '❄') : '⌒';
       if (n.kind === 'corner') icon = n.grade === 0 ? (n.dir > 0 ? '↶' : '↷') : n.dir > 0 ? '↰' : '↱';
       const txt = n.kind === 'corner' && n.grade > 0 ? `<b>${n.grade}</b>` : '';
       el.innerHTML = `<span class="ico">${icon}</span>${txt}<span class="lbl">${n.label}${n.into ? ' ›' : ''}</span><div class="dist"></div>`;
@@ -482,12 +490,20 @@ export class Race {
       }
     }
 
+    // Pluie annoncée en cours de route.
+    if (this.rainAt != null && !this.rainOn && this.s >= this.rainAt) {
+      this.rainOn = true;
+      this.flash('🌧 LA PLUIE ARRIVE', 'warn', 1800);
+      this.app.codriver.say('Attention, la pluie arrive, ça va glisser');
+    }
+
     // Arrivée.
     if (this.s >= t.finish && this.s < t.finish + 30) this.finish();
   }
 
   noteSpeech(n) {
     if (n.kind === 'crest') return n.label.startsWith('Saut') ? 'saut' : 'bosse';
+    if (n.kind === 'patch') return n.patch === 'ice' ? 'attention, verglas' : 'neige';
     if (n.grade === 0) return n.label.toLowerCase();
     return `${n.dir > 0 ? 'gauche' : 'droite'} ${GRADE_WORDS[n.grade]}${n.label.endsWith('long') ? ' long' : ''}`;
   }
@@ -647,9 +663,23 @@ export class Race {
     }
     this.dust.update(dt);
     this.flames.update(dt);
-    if (this.rain) this.rain.update(dt, this.camera.position);
+    this.updateWeather(dt);
+    if (this.rain && this.rain.lines.visible) this.rain.update(dt, this.camera.position);
     this.world.updateSpectators(this.visTime, this.s ?? null);
     this.world.follow(g.position);
+  }
+
+  // Pluie visible en quelques secondes, route qui se mouille plus lentement.
+  updateWeather(dt) {
+    const target = this.rainOn ? 1 : 0;
+    const prev = this.rainK;
+    this.rainK += Math.sign(target - this.rainK) * Math.min(Math.abs(target - this.rainK), dt / 6);
+    this.track.wetness += Math.sign(target - this.track.wetness) * Math.min(Math.abs(target - this.track.wetness), dt / 20);
+    if (this.rainK !== prev) this.world.setWeather(this.scene, this.rainK);
+    if (this.rain) {
+      this.rain.lines.visible = this.rainK > 0.02;
+      this.rain.lines.material.opacity = 0.45 * this.rainK;
+    }
   }
 
   burst(n) {

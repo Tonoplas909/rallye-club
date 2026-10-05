@@ -36,9 +36,13 @@ export const CALENDAR = [
   { id: 'vosges', name: 'Rallye des Vosges', stages: ['Col de la Schlucht', 'Grand Ballon', 'Lac de Gérardmer'] },
   { id: 'corse', name: 'Tour de Corse', stages: ['Col de Bavella', 'Calanches de Piana', 'Désert des Agriates'] },
   { id: 'suede', name: 'Rallye de Suède', stages: ['Torsby', 'Vargåsen', 'Lac de Hagfors'] },
+  { id: 'kenya', name: 'Safari Rally Kenya', stages: ['Lac Naivasha', 'Kedong', 'Soysambu'] },
   { id: 'maroc', name: 'Rallye du Maroc', stages: ['Erg Chebbi', 'Gorges du Dadès', 'Vallée du Drâa'] },
+  { id: 'finlande', name: 'Rallye de Finlande', stages: ['Ouninpohja', 'Harju', 'Päijälä'] },
   { id: 'galles', name: 'Rallye de Galles', stages: ['Sweet Lamb', 'Hafren', 'Dyfi'] },
-  { id: 'montecarlo', name: 'Rallye Monte-Carlo', stages: ['Col de Turini', 'Sisteron', 'Col de Braus'] },
+  { id: 'japon', name: 'Rallye du Japon', stages: ['Lac Nakatsugawa', 'Isegami', 'Mont Asahi'] },
+  // Monte-Carlo : spéciale mixte de jour, montée du Turini, puis Col de Braus de nuit.
+  { id: 'montecarlo', name: 'Rallye Monte-Carlo', stages: ['Sisteron', 'Col de Turini', 'Col de Braus'], bases: ['montecarlo-jour', 'turini', 'montecarlo'] },
 ];
 
 export function newCareer(difficulty = 'normal', season = 1, history = []) {
@@ -54,12 +58,22 @@ export function newCareer(difficulty = 'normal', season = 1, history = []) {
   };
 }
 
+// Météo d'une spéciale de carrière : la pluie n'existe pas dans le désert ni sur la neige.
+function stageWeather(base, rng) {
+  if (base.surface === 'sand' || base.surface === 'snow') return 'clear';
+  const r = rng();
+  if (base.weather === 'rain') return r < 0.75 ? 'rain' : 'changing';
+  if (base.weather === 'changing') return r < 0.25 ? 'rain' : r < 0.7 ? 'changing' : 'clear';
+  return r < 0.15 ? 'rain' : r < 0.32 ? 'changing' : 'clear';
+}
+
 // Définition des 3 spéciales d'un rallye (nouveaux tracés à chaque saison).
 export function rallyStages(rallyId, season) {
-  const base = STAGES.find((s) => s.id === rallyId);
   const cal = CALENDAR.find((c) => c.id === rallyId);
   return cal.stages.map((name, k) => {
+    const base = STAGES.find((s) => s.id === (cal.bases?.[k] ?? rallyId));
     const rng = mulberry32(base.seed * 31 + season * 977 + k * 131);
+    const wrng = mulberry32(base.seed * 53 + season * 389 + k * 17);
     return {
       ...base,
       id: `career-s${season}-${rallyId}-${k + 1}`,
@@ -71,6 +85,9 @@ export function rallyStages(rallyId, season) {
       hairpin: Math.max(0.02, base.hairpin + (rng() - 0.5) * 0.06),
       reward: Math.round(base.reward * 0.6),
       career: true,
+      weather: stageWeather(base, wrng),
+      // Une spéciale de nuit de temps en temps (toujours à Monte-Carlo).
+      night: base.night || (k === 1 && wrng() < 0.3),
       powerStage: k === STAGES_PER_RALLY - 1,
       desc: k === STAGES_PER_RALLY - 1 ? 'Power Stage : 3, 2 et 1 points bonus aux plus rapides.' : base.desc,
     };

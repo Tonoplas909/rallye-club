@@ -2,6 +2,7 @@
 // et requêtes géométriques utilisées par la physique. Aucun rendu ici.
 import { Noise2D, mulberry32, clamp, lerp, smoothstep, wrapAngle } from './util.js';
 import { SURFACES } from './data.js';
+import { wetFactor } from './gameplay.js';
 
 export const SAMPLE = 2; // espacement des échantillons de route (m)
 
@@ -9,10 +10,15 @@ const THEME_TERRAIN = {
   forest: { amp: 22, amp2: 4, mountain: 26, offroad: 'grass' },
   med: { amp: 42, amp2: 6, mountain: 40, offroad: 'grass' },
   snow: { amp: 14, amp2: 3, mountain: 18, offroad: 'snow', snowbank: true },
-  desert: { amp: 10, amp2: 5, mountain: 14, offroad: 'sand', dunes: true },
+  desert: { amp: 10, amp2: 5, mountain: 14, offroad: 'sand', dunes: true, crest: { chance: 0.85, H: 1.8 } },
   wales: { amp: 20, amp2: 5, mountain: 24, offroad: 'grass' },
   night: { amp: 46, amp2: 6, mountain: 44, offroad: 'grass' },
+  finland: { amp: 15, amp2: 3, mountain: 10, offroad: 'grass', lakes: true, crest: { chance: 0.92, H: 2.3, runway: 110 } },
+  kenya: { amp: 12, amp2: 3, mountain: 18, offroad: 'grass', crest: { chance: 0.6, H: 1.5, runway: 80 } },
+  japan: { amp: 44, amp2: 6, mountain: 42, offroad: 'grass' },
+  alps: { amp: 40, amp2: 6, mountain: 46, offroad: 'grass' },
 };
+const DEFAULT_CREST = { chance: 0.55, H: 1.2 };
 
 export class Track {
   constructor(opts) {
@@ -24,6 +30,9 @@ export class Track {
     if (opts.theme === 'desert') this.offroadSurface = 'sand';
     this.halfW = (opts.roadWidth || (opts.surface === 'tarmac' ? 7.5 : 7)) / 2;
     this.blend = 13;
+    // Humidité de la route (0 = sec, 1 = détrempé). Évolue pendant la course si la pluie arrive.
+    this.weather = opts.weather || 'clear';
+    this.wetness = this.weather === 'rain' ? 1 : 0;
     this.noise = new Noise2D(opts.seed * 7 + 3);
     this.noise2 = new Noise2D(opts.seed * 13 + 5);
     this.build();
@@ -76,6 +85,7 @@ export class Track {
     this.start = 10;
     this.finish = this.length - 45;
     this.splits = [this.finish / 3, (this.finish * 2) / 3];
+    this.buildPatches(); // après start/finish, qui bornent les plaques
     this.refTime = this.referenceTime();
   }
 
@@ -208,6 +218,8 @@ export class Track {
   baseHeight(x, y) {
     const t = this.terrain;
     let h = this.noise.fbm(x / 280, y / 280, 4) * t.amp + this.noise2.fbm(x / 70, y / 70, 3) * t.amp2;
+    // Inclinaison générale (montée vers un col).
+    if (this.opts.tilt) h += x * this.opts.tilt;
     if (t.dunes) {
       const r = 1 - Math.abs(this.noise2.noise(x / 55 + 3.1, y / 90 - 1.7));
       h += r * r * 7;
@@ -258,13 +270,18 @@ export class Track {
     // Bosses / sauts sur les lignes droites.
     const rng = mulberry32(this.opts.seed * 31 + 17);
     this.crests = [];
-    const desert = this.theme === 'desert';
+    const crest = this.terrain.crest || DEFAULT_CREST;
     for (const st of path.straights) {
       const s0 = st.s0, s1 = st.s1;
       if (s0 < 160 || s1 > path.pts.length - 120) continue;
-      if (rng() > (desert ? 0.85 : 0.55)) continue;
-      const sc = (s0 + s1) / 2 + (rng() - 0.5) * (s1 - s0) * 0.3;
-      const H = (desert ? 1.8 : 1.2) + rng() * 0.9;
+      if (rng() > crest.chance) continue;
+      let sc = (s0 + s1) / 2 + (rng() - 0.5) * (s1 - s0) * 0.3;
+      // Grands sauts : il faut une ligne droite de réception avant le virage suivant.
+      if (crest.runway) {
+        sc = Math.min(sc, s1 - crest.runway);
+        if (sc < s0 + 25) continue;
+      }
+      const H = crest.H + rng() * 0.9;
       const sig = 7 + rng() * 3;
       this.crests.push({ s: sc, H, sig });
     }
@@ -364,7 +381,8 @@ export class Track {
       height: this.heightFrom(x, y, nr),
       offroad,
       offroadBlend: offroad ? smoothstep(this.halfW + 0.3, this.halfW + 2.5, ad) : 0,
-      surface: offroad ? this.offroadSurface : this.surface,
+      surface: offroad ? this.offroadSurface : this.roadSurfaceAt(nr.s),
+      roadSurface: this.roadSurfaceAt(nr.s),
     };
   }
 
@@ -403,20 +421,62 @@ export class Track {
     this.notes = notes;
   }
 
+  // Plaques de neige et de verglas sur l'asphalte, surtout dans les virages à l'ombre.
+  buildPatches() {
+    this.patches = [];
+    this.patchAt = new Uint8Array(this.n);
+    const density = this.opts.patches || 0;
+    if (!density) return;
+    const rng = mulberry32(this.opts.seed * 41 + 9);
+    for (const c of this.corners) {
+      const ramp = this.opts.patchRamp ? 0.3 + 1.4 * (c.s0 / this.length) : 1;
+      if (c.s0 < this.start + 40 || rng() > density * ramp) continue;
+      const kind = rng() < 0.35 ? 'ice' : 'snow';
+      const s0 = Math.max(this.start + 20, c.s0 - 10 - rng() * 20);
+      const s1 = Math.min(this.finish - 10, c.s1 + rng() * 25);
+      if (s1 - s0 < 15) continue;
+      // Plaques qui se touchent : on prolonge la précédente (une seule surface par endroit).
+      const last = this.patches[this.patches.length - 1];
+      if (last && s0 <= last.s1 + 4) { last.s1 = Math.max(last.s1, s1); continue; }
+      this.patches.push({ s0, s1, kind });
+    }
+    for (const p of this.patches) {
+      for (let i = Math.floor(p.s0 / SAMPLE); i <= Math.ceil(p.s1 / SAMPLE) && i < this.n; i++) this.patchAt[i] = p.kind === 'ice' ? 2 : 1;
+    }
+    for (const p of this.patches) {
+      this.notes.push({ s: p.s0, end: p.s1, grade: -2, label: p.kind === 'ice' ? 'Verglas !' : 'Neige', kind: 'patch', patch: p.kind });
+    }
+    this.notes.sort((a, b) => a.s - b.s);
+  }
+
+  roadSurfaceAt(s) {
+    if (!this.patches.length) return this.surface;
+    const v = this.patchAt[Math.min(this.n - 1, Math.max(0, Math.round(s / SAMPLE)))];
+    return v === 2 ? 'ice' : v === 1 ? 'snow' : this.surface;
+  }
+
+  // Adhérence de la route à l'échantillon i (plaques comprises, météo prévue).
+  sampleMu(i, wet = this.wetness) {
+    const surf = this.roadSurfaceAt(i * SAMPLE);
+    return SURFACES[surf].mu * wetFactor(surf, wet);
+  }
+
   // Temps de référence : profil de vitesse limité par l'adhérence en virage.
   referenceTime() {
-    const mu = SURFACES[this.surface].mu * 0.98;
+    // Pluie annoncée : la référence tient compte de la route mouillée (à moitié si elle arrive en cours de route).
+    const wet = this.weather === 'rain' ? 1 : this.weather === 'changing' ? 0.5 : 0;
     const n = this.n;
-    const v = new Float32Array(n);
+    const v = new Float32Array(n), mus = new Float32Array(n);
+    for (let i = 0; i < n; i++) mus[i] = this.sampleMu(i, wet) * 0.98;
     for (let i = 0; i < n; i++) {
       let kmax = 0;
       for (let j = Math.max(0, i - 2); j <= Math.min(n - 1, i + 2); j++) kmax = Math.max(kmax, Math.abs(this.k[j]));
-      v[i] = kmax > 0 ? Math.min(48, Math.sqrt((mu * 9.81) / kmax)) : 48;
+      v[i] = kmax > 0 ? Math.min(48, Math.sqrt((mus[i] * 9.81) / kmax)) : 48;
     }
     v[0] = 0;
-    const acc = 5.5, dec = 8 * mu;
+    const acc = 5.5;
     for (let i = 1; i < n; i++) v[i] = Math.min(v[i], Math.sqrt(v[i - 1] ** 2 + 2 * acc * SAMPLE));
-    for (let i = n - 2; i >= 0; i--) v[i] = Math.min(v[i], Math.sqrt(v[i + 1] ** 2 + 2 * dec * SAMPLE));
+    for (let i = n - 2; i >= 0; i--) v[i] = Math.min(v[i], Math.sqrt(v[i + 1] ** 2 + 2 * 8 * mus[i] * SAMPLE));
     let t = 0;
     const i0 = Math.floor(this.start / SAMPLE), i1 = Math.floor(this.finish / SAMPLE);
     for (let i = i0; i < i1; i++) t += SAMPLE / Math.max((v[i] + v[i + 1]) / 2, 1);

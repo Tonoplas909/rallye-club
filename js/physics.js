@@ -2,7 +2,7 @@
 // Repère local : x vers l'avant, y vers la gauche. Monde 2D : (x, y), altitude à part.
 import { SURFACES } from './data.js';
 import { clamp, lerp, damp } from './util.js';
-import { setupEffects, damageEffects, tyreGrip } from './gameplay.js';
+import { setupEffects, damageEffects, tyreGrip, wetFactor } from './gameplay.js';
 
 const G = 9.81;
 
@@ -93,9 +93,10 @@ export class CarPhysics {
     this.hint = q.idx;
     this.surface = q.surface;
     this.offroad = q.offroad;
-    const roadSurf = SURFACES[track.surface];
+    const roadKey = q.roadSurface || track.surface; // neige ou verglas par plaques sur l'asphalte
+    const roadSurf = SURFACES[roadKey];
     let mu = roadSurf.mu, roll = roadSurf.roll, B = roadSurf.B;
-    if (track.surface === 'tarmac') mu *= this.hmod.tarmac;
+    if (roadKey === 'tarmac') mu *= this.hmod.tarmac;
     if (q.offroad) {
       const off = SURFACES[track.offroadSurface];
       const p = clamp(this.offroadPenalty * q.offroadBlend, 0, 1.2);
@@ -103,9 +104,10 @@ export class CarPhysics {
       roll = lerp(roll, off.roll, p);
       B = off.B;
     }
-    let tyreK = tyreGrip(this.tyre, track.surface, track.wet);
+    const wet = track.wetness || 0;
+    let tyreK = lerp(tyreGrip(this.tyre, roadKey, false), tyreGrip(this.tyre, roadKey, true), wet);
     if (q.offroad) tyreK = lerp(tyreK, tyreGrip(this.tyre, track.offroadSurface, false), Math.min(q.offroadBlend, 1));
-    if (track.wet && !q.offroad && track.surface === 'tarmac') mu *= 0.78;
+    mu *= wetFactor(q.offroad ? track.offroadSurface : roadKey, wet);
     mu *= car.grip * this.hmod.grip * TUNING.grip * tyreK * this.setup.gripMult * dmg.gripMult;
 
     // --- Vertical : suit le sol, décolle si le sol tombe plus vite que la gravité.

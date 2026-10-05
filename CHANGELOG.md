@@ -2,6 +2,15 @@
 
 Les mêmes notes s'affichent dans le jeu (menu → « Nouveautés »). La source est `js/version.js`.
 
+## v1.5.0 — 05/10/2026 · Nouveaux pays, météo et Monte-Carlo
+- Monte-Carlo de jour : asphalte avec des plaques de neige et de verglas dans les virages à l’ombre, annoncées par le copilote. Le choix des pneus devient un vrai dilemme.
+- Col de Turini : la montée légendaire en 17 épingles vers le col enneigé, devant une foule immense.
+- 3 nouveaux pays : Finlande (terre ultra-rapide, lacs et sauts géants), Safari Kenya (pistes rouges de la savane) et Japon (routes de montagne entre les cerisiers).
+- Météo dynamique : la pluie peut arriver en pleine spéciale. Le ciel s’assombrit, la route devient glissante et les pneus Pluie prennent tout leur sens.
+- Spéciales de nuit possibles dans tous les pays, en carrière comme au défi du jour.
+- 3 nouvelles voitures : Comète 1800 (propulsion des années 70), Kodiak Raid (pick-up 4x4) et Lionne T16 (Groupe B).
+- Le championnat passe à 9 rallyes. Le rallye Monte-Carlo enchaîne désormais une spéciale de jour, le Col de Turini et une spéciale de nuit.
+
 ## v1.4.0 — 05/10/2026 · Dégâts, pneus et réglages
 - Dégâts mécaniques : les chocs et les réceptions trop dures abîment le moteur (moins de puissance), la direction (la voiture tire d’un côté) et la suspension (moins d’adhérence). L’état s’affiche en haut à gauche.
 - Carrière : les dégâts restent d’une spéciale à l’autre. Au parc d’assistance, tu as 30 minutes pour réparer entre deux spéciales.

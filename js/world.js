@@ -43,7 +43,44 @@ export const THEMES = {
     ground: ['#4a5832', '#5b683b', '#3a4829'], verge: '#6b6150', rock: '#77736c',
     trees: ['pine', 'olive'], density: 0.8, rocks: 0.6, rails: true, flares: true, stars: true, dust: '#cfcfcf',
   },
+  finland: {
+    sky: '#86bde8', horizon: '#e2edf3', fog: '#cbdbe4', fogNear: 80, fogFar: 600,
+    sun: '#fff3dc', sunI: 2.6, hemiSky: '#d6e8ff', hemiGround: '#3b4a2a', hemiI: 0.95,
+    ground: ['#46703a', '#5f8240', '#365a2c'], verge: '#8a7556', rock: '#7f7d78',
+    trees: ['birch', 'pine', 'birch', 'pine'], density: 1.1, rocks: 0.5, dust: '#b9a07c', lakes: true,
+  },
+  kenya: {
+    sky: '#76b2e4', horizon: '#f1e3c4', fog: '#e8d6b4', fogNear: 90, fogFar: 650,
+    sun: '#fff0d2', sunI: 3.0, hemiSky: '#ffeccc', hemiGround: '#8a6a3c', hemiI: 0.9,
+    ground: ['#b8a45c', '#c9b46a', '#9e8c4c'], verge: '#a4532b', rock: '#8c6248',
+    trees: ['acacia', 'acacia', 'bush'], density: 0.22, rocks: 0.9, dust: '#c0643a',
+    road: { base: '#a65a33', rut: '#874526', speck: ['#bd6c40', '#8c4a2a', '#c87a4c'], edge: '#9a5530' },
+  },
+  japan: {
+    sky: '#9ab9d4', horizon: '#dde6ec', fog: '#c8d4dc', fogNear: 45, fogFar: 380,
+    sun: '#fff4e6', sunI: 2.2, hemiSky: '#dbe7f4', hemiGround: '#3a4430', hemiI: 1.0,
+    ground: ['#4a6a36', '#5b7a3e', '#3c5a2e'], verge: '#6a6656', rock: '#7c7a74',
+    trees: ['sakura', 'pine', 'pine', 'broad'], density: 1.1, rocks: 0.5, rails: true, dust: '#d0d0d0',
+  },
+  alps: {
+    sky: '#7fb6e6', horizon: '#e8f0f6', fog: '#d5e2ec', fogNear: 80, fogFar: 600,
+    sun: '#fff5e8', sunI: 2.7, hemiSky: '#dceaff', hemiGround: '#4c4c3e', hemiI: 0.95,
+    ground: ['#6b7656', '#7f8766', '#5a6249'], verge: '#8c8a80', rock: '#8d8a84',
+    trees: ['pineSnow', 'pine', 'pineSnow'], density: 0.8, rocks: 0.9, rails: true, dust: '#e8eef5', snowCover: true,
+  },
 };
+
+// Version nocturne de n'importe quel thème : clair de lune, ciel étoilé, brouillard sombre.
+export function nightTheme(th) {
+  const dark = (hex, k) => `#${new THREE.Color(hex).multiplyScalar(k).getHexString()}`;
+  return {
+    ...th, sky: '#03060f', horizon: '#0d1830', fog: dark(th.fog, 0.07), fogNear: 25, fogFar: 300,
+    sun: '#9fb2ff', sunI: 0.35, hemiSky: '#3a4a80', hemiGround: '#10140c', hemiI: 0.35, stars: true,
+  };
+}
+
+// Ambiance de pluie vers laquelle on fond quand le temps se gâte.
+const STORM = { sky: '#76818a', horizon: '#9ea7ae', fog: '#8e989f', fogNear: 25, fogFar: 230, sunK: 0.4, hemiK: 0.85 };
 
 const ROAD_COLORS = {
   gravel: { base: '#8f7b5d', rut: '#6f5c42', speck: ['#a8957a', '#6b5a43', '#b8a688'], edge: '#7b6a50' },
@@ -55,11 +92,11 @@ const ROAD_COLORS = {
 
 const to3 = (x, y, h) => new THREE.Vector3(x, h, -y);
 
-function roadTexture(surface) {
+function roadTexture(surface, override) {
   const c = document.createElement('canvas');
   c.width = 256; c.height = 512;
   const g = c.getContext('2d');
-  const col = ROAD_COLORS[surface];
+  const col = override ? { ...ROAD_COLORS[surface], ...override } : ROAD_COLORS[surface];
   const rng = mulberry32(99);
   g.fillStyle = col.base;
   g.fillRect(0, 0, 256, 512);
@@ -157,7 +194,7 @@ export class World {
   constructor(track, stage, quality = 'high') {
     this.track = track;
     this.stage = stage;
-    this.theme = THEMES[track.theme];
+    this.theme = stage.night && track.theme !== 'night' ? nightTheme(THEMES[track.theme]) : THEMES[track.theme];
     this.quality = quality;
     this.group = new THREE.Group();
     this.colliders = new Map();
@@ -193,6 +230,8 @@ export class World {
     this.buildLights();
     this.buildTerrain();
     this.buildRoad();
+    this.buildPatches();
+    this.buildWater();
     this.buildScenery();
     this.buildBarriers();
     this.buildSpectators();
@@ -240,6 +279,91 @@ export class World {
     this.group.add(this.sun, this.sun.target);
   }
 
+  // Plaques de neige et de verglas dessinées sur la route.
+  buildPatches() {
+    const t = this.track;
+    if (!t.patches?.length) return;
+    const mk = (kind) => {
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 256;
+      const g = c.getContext('2d');
+      const rng = mulberry32(kind === 'ice' ? 5 : 3);
+      for (let i = 0; i < 260; i++) {
+        const x = 8 + rng() * 112, y = rng() * 256, r = 6 + rng() * 18;
+        g.fillStyle = kind === 'ice' ? `rgba(200,225,255,${0.25 + rng() * 0.3})` : `rgba(250,252,255,${0.5 + rng() * 0.4})`;
+        g.beginPath(); g.ellipse(x, y, r, r * 1.6, 0, 0, Math.PI * 2); g.fill();
+      }
+      if (kind === 'snow') { g.fillStyle = 'rgba(120,130,140,0.35)'; g.fillRect(34, 0, 14, 256); g.fillRect(80, 0, 14, 256); }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      this.disposables.push(tex);
+      return new THREE.MeshStandardMaterial({
+        map: tex, transparent: true, depthWrite: false, roughness: kind === 'ice' ? 0.05 : 0.8, metalness: kind === 'ice' ? 0.3 : 0,
+        polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
+      });
+    };
+    const mats = { snow: mk('snow'), ice: mk('ice') };
+    for (const p of t.patches) {
+      const pos = [], uv = [], idx = [];
+      let n = 0;
+      for (let s = p.s0; s <= p.s1; s += SAMPLE) {
+        const pt = t.pointAt(s);
+        const nx = -Math.sin(pt.a), ny = Math.cos(pt.a);
+        for (const side of [1, -1]) {
+          const w = t.halfW * 0.98 * side;
+          pos.push(pt.x + nx * w, pt.h + 0.07, -(pt.y + ny * w));
+          uv.push(side > 0 ? 0 : 1, (s - p.s0) / 20);
+        }
+        if (n > 0) { const a = (n - 1) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+        n++;
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      geo.setIndex(idx);
+      geo.computeVertexNormals();
+      if (geo.attributes.normal.getY(0) < 0) { const ix = geo.index.array; for (let i = 0; i < ix.length; i += 3) { const tmp = ix[i + 1]; ix[i + 1] = ix[i + 2]; ix[i + 2] = tmp; } geo.computeVertexNormals(); }
+      const mesh = new THREE.Mesh(geo, mats[p.kind]);
+      mesh.receiveShadow = true;
+      mesh.renderOrder = 2;
+      this.group.add(mesh);
+      this.disposables.push(geo);
+    }
+    this.disposables.push(mats.snow, mats.ice);
+  }
+
+  // Lacs : un plan d'eau sous le niveau de la route, visible là où le terrain plonge.
+  buildWater() {
+    if (!this.theme.lakes) return;
+    let minH = Infinity;
+    for (let i = 0; i < this.track.n; i++) minH = Math.min(minH, this.track.h[i]);
+    const b = this.track.bounds;
+    const geo = new THREE.PlaneGeometry(4000, 4000).rotateX(-Math.PI / 2);
+    const mat = new THREE.MeshStandardMaterial({ color: '#2f5876', roughness: 0.08, metalness: 0.3, transparent: true, opacity: 0.92 });
+    const water = new THREE.Mesh(geo, mat);
+    water.position.set((b.minX + b.maxX) / 2, minH - 2.2, -(b.minY + b.maxY) / 2);
+    water.receiveShadow = true;
+    this.group.add(water);
+    this.disposables.push(geo, mat);
+  }
+
+  // Météo : k = intensité de la pluie (0 à 1). Ciel, brouillard, lumière et route mouillée.
+  setWeather(scene, k) {
+    const th = this.theme;
+    const night = th.stars;
+    const mix = (a, b) => new THREE.Color(a).lerp(new THREE.Color(b), night ? k * 0.3 : k);
+    this.sky.material.uniforms.top.value.copy(mix(th.sky, STORM.sky));
+    this.sky.material.uniforms.bottom.value.copy(mix(th.horizon, STORM.horizon));
+    scene.fog.color.copy(mix(th.fog, STORM.fog));
+    if (!night) scene.background.copy(mix(th.horizon, STORM.horizon));
+    scene.fog.near = th.fogNear + (Math.min(th.fogNear, STORM.fogNear) - th.fogNear) * k;
+    scene.fog.far = th.fogFar + (Math.min(th.fogFar, night ? 260 : STORM.fogFar) - th.fogFar) * k;
+    this.sun.intensity = th.sunI * (1 + (STORM.sunK - 1) * k);
+    this.hemi.intensity = th.hemiI * (1 + (STORM.hemiK - 1) * k);
+    if (this.roadMat) this.roadMat.roughness = this.roadRough + (0.3 - this.roadRough) * k;
+  }
+
   follow(pos) {
     this.sun.position.copy(pos).add(this.sunOffset);
     this.sun.target.position.copy(pos);
@@ -254,6 +378,11 @@ export class World {
     const c0 = this._c0 || (this._c0 = th.ground.map((c) => new THREE.Color(c)));
     out.copy(c0[0]).lerp(c0[1], n).lerp(c0[2], n2 * 0.6);
     if (slope > 0.55) out.lerp(this._rock || (this._rock = new THREE.Color(th.rock)), smoothstep(0.55, 0.9, slope) * 0.8);
+    // Montagne enneigée : plaques de neige, plus nombreuses en altitude.
+    if (th.snowCover) {
+      const sn = this.track.noise.noise(x / 30 + 7, y / 30 - 3) + h / 120;
+      if (sn > 0.05) out.lerp(this._snow || (this._snow = new THREE.Color('#f2f6fa')), smoothstep(0.05, 0.25, sn) * 0.9);
+    }
     const vergeK = 1 - smoothstep(this.track.halfW + 0.3, this.track.halfW + 3.5, ad);
     if (vergeK > 0) out.lerp(this._verge || (this._verge = new THREE.Color(th.verge)), vergeK);
     return out;
@@ -385,7 +514,7 @@ export class World {
       for (let i = 0; i < ix.length; i += 3) { const tmp = ix[i + 1]; ix[i + 1] = ix[i + 2]; ix[i + 2] = tmp; }
       geo.computeVertexNormals();
     }
-    const tex = roadTexture(t.surface);
+    const tex = roadTexture(t.surface, this.theme.road);
     const mat = new THREE.MeshStandardMaterial({
       map: tex, roughness: t.surface === 'snow' ? 0.55 : t.surface === 'mud' ? 0.6 : 0.95,
       polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
@@ -393,6 +522,8 @@ export class World {
     const mesh = new THREE.Mesh(geo, mat);
     mesh.receiveShadow = true;
     this.group.add(mesh);
+    this.roadMat = mat;
+    this.roadRough = mat.roughness;
     this.disposables.push(geo, mat, tex);
   }
 
@@ -433,6 +564,20 @@ export class World {
       }
       case 'bush':
         return colorize(new THREE.IcosahedronGeometry(1, 1).scale(1.3, 0.8, 1.3).translate(0, 0.5, 0), '#5c6b3a');
+      case 'birch': {
+        const parts = [trunk(5, 0.16, '#e8e4dc')];
+        parts.push(colorize(new THREE.IcosahedronGeometry(1.5, 1).scale(1, 1.6, 1).translate(0, 5.4, 0), '#7fa548'));
+        return mergeGeometries(parts);
+      }
+      case 'acacia': {
+        const parts = [trunk(3.2, 0.2, '#5a4632')];
+        parts.push(colorize(new THREE.CylinderGeometry(3.6, 2.6, 0.9, 9).translate(0, 3.6, 0), '#6f7f3a'));
+        return mergeGeometries(parts);
+      }
+      case 'sakura': {
+        const crown = colorize(new THREE.IcosahedronGeometry(2.2, 1).scale(1.25, 0.9, 1.25).translate(0, 3.8, 0), '#f2a7c3');
+        return mergeGeometries([trunk(2.8, 0.24, '#4b3628'), crown]);
+      }
       case 'palm': {
         const parts = [trunk(6.5, 0.22, '#8a6a46')];
         for (let i = 0; i < 7; i++) {
@@ -610,10 +755,10 @@ export class World {
     const jackets = ['#d42430', '#1f4fbf', '#f6c516', '#ffffff', '#222222', '#f26b1d', '#2e8b57', '#ff4fa3'];
     for (const spot of spots) {
       if (spot.s < t.start + 30 || spot.s > t.finish - 20) continue;
-      if (rng() < 0.3) continue;
+      if (rng() < 0.3 / (this.stage.crowd || 1)) continue;
       const side = spot.kind === 'corner' ? spot.dir : rng() < 0.5 ? 1 : -1; // intérieur du virage
       const sMid = (spot.s + spot.end) / 2;
-      const count = 5 + Math.floor(rng() * 9);
+      const count = Math.round((5 + Math.floor(rng() * 9)) * (this.stage.crowd || 1));
       for (let k = 0; k < count; k++) {
         const pt = t.pointAt(sMid + (rng() - 0.5) * 18);
         const d = (t.halfW + 6 + rng() * 5) * side;
@@ -703,7 +848,7 @@ export class World {
       return g;
     };
     make(t.start, ['DÉPART', this.stage.name.toUpperCase()], '#1f4fbf', '#ffffff');
-    make(t.finish, ['ARRIVÉE', 'RALLYE CLUB'], '#d42430', '#ffffff');
+    make(t.finish, ['ARRIVÉE', this.stage.finishSign || 'RALLYE CLUB'], '#d42430', '#ffffff');
     // Panneaux de pointage intermédiaires.
     t.splits.forEach((s, i) => {
       const p = t.pointAt(s);
