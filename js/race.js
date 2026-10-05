@@ -10,6 +10,7 @@ import { CARS, PARTS, SURFACES, MEDALS } from './data.js';
 import { clamp, damp, lerp, wrapAngle, formatTime, formatDelta } from './util.js';
 import { save } from './save.js';
 import { isTuned } from './debug.js';
+import { recommendedTyre, freshDamage, applyImpact, applyLanding, PARTS_DAMAGE, TYRES } from './gameplay.js';
 
 const DT = 1 / 120;
 const RESET_PENALTY = 5000;
@@ -31,9 +32,11 @@ const GRADE_WORDS = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six'];
 const $ = (id) => document.getElementById(id);
 
 export class Race {
-  constructor(app, { stage, car, cfg, key, career = false }) {
+  constructor(app, { stage, car, cfg, key, career = false, tyre = null, damage = null }) {
     this.app = app;
     this.career = career;
+    this.tyre = tyre;
+    this.damage = damage || freshDamage();
     this.stage = stage;
     this.car = car;
     this.cfg = cfg;
@@ -78,7 +81,13 @@ export class Race {
 
     this.model = buildCar(this.car, this.cfg);
     scene.add(this.model.group);
-    this.phys = new CarPhysics(this.car, this.cfg);
+    const set = save.settings;
+    this.tyre = this.tyre || recommendedTyre(this.track.surface, this.track.wet);
+    this.damageOn = set.damage !== false;
+    this.phys = new CarPhysics(this.car, this.cfg, {
+      tyre: this.tyre, damage: this.damage, surface: this.track.surface,
+      assists: { abs: set.abs !== false, tc: set.tc !== false, esp: !!set.esp },
+    });
     const p0 = this.track.pointAt(this.track.start - 7);
     this.phys.reset(p0.x, p0.y, p0.a, p0.h);
     this.camYaw = p0.a;
@@ -210,6 +219,10 @@ export class Race {
     $('hud-progress-fill').style.width = `${prog * 100}%`;
     if (this.ghost && this.ghostS != null) $('hud-ghost').style.left = `${clamp(this.ghostS / this.track.finish, 0, 1) * 100}%`;
     $('hud-penalty').textContent = this.penalty ? `+${(this.penalty / 1000).toFixed(0)}s pénalité` : '';
+    this.updateDamageHud();
+    const as = $('hud-assists');
+    if (as) as.innerHTML = [['abs', 'ABS', p.absActive], ['tc', 'TC', p.tcActive], ['esp', 'ESP', p.espActive]]
+      .filter(([k]) => this.phys.assists[k]).map(([, n, on]) => `<span class="${on ? 'on' : ''}">${n}</span>`).join('');
 
     const cv = $('hud-minimap');
     const g = cv.getContext('2d');
@@ -229,6 +242,21 @@ export class Race {
     g.beginPath(); g.moveTo(8, 0); g.lineTo(-5, 5); g.lineTo(-3, 0); g.lineTo(-5, -5); g.closePath();
     g.fill(); g.stroke();
     g.restore();
+  }
+
+  updateDamageHud() {
+    const el = $('hud-damage');
+    if (!el) return;
+    const d = this.damage;
+    const key = this.damageOn ? ['engine', 'steering', 'suspension'].map((k) => Math.round(d[k] * 20)).join(',') : 'off';
+    if (key === this._dmgKey) return;
+    this._dmgKey = key;
+    if (!this.damageOn) { el.innerHTML = ''; return; }
+    el.innerHTML = Object.entries(PARTS_DAMAGE).map(([k, def]) => {
+      const v = d[k];
+      const cls = v < 0.05 ? 'ok' : v < 0.3 ? 'light' : v < 0.6 ? 'mid' : 'bad';
+      return `<span class="dmg ${cls}" title="${def.name} : ${Math.round(v * 100)} %">${def.icon}</span>`;
+    }).join('') + `<span class="tyre" title="Pneus ${TYRES[this.tyre]?.name ?? ''}">${TYRES[this.tyre]?.icon ?? ''}</span>`;
   }
 
   flash(text, cls = '', ms = 1400) {
@@ -311,7 +339,7 @@ export class Race {
     const R = this.car.dims.W * 0.5;
     const half = this.car.dims.L * 0.32;
     const c = Math.cos(p.heading), s = Math.sin(p.heading);
-    let impact = 0;
+    let impact = 0, hitN = null;
     // Deux cercles (avant / arrière) contre arbres, rochers, bottes de paille.
     for (const k of [-1, 1]) {
       const cx = p.x + c * half * k, cy = p.y + s * half * k;
@@ -319,7 +347,10 @@ export class Race {
         const dx = cx - o.x, dy = cy - o.y;
         const d = Math.hypot(dx, dy);
         const min = o.r + R;
-        if (d < min && d > 1e-4) impact = Math.max(impact, p.collide(dx / d, dy / d, min - d, 0.3));
+        if (d < min && d > 1e-4) {
+          const imp = p.collide(dx / d, dy / d, min - d, 0.3);
+          if (imp > impact) { impact = imp; hitN = [dx / d, dy / d]; }
+        }
       }
     }
     // Glissières.
@@ -332,7 +363,8 @@ export class Race {
         if (out > 0 && out < 3) {
           const pt = this.track.pointAt(q.s);
           const nx = Math.sin(pt.a) * b.side, ny = -Math.cos(pt.a) * b.side; // vers la route
-          impact = Math.max(impact, p.collide(nx, ny, out, 0.15));
+          const imp = p.collide(nx, ny, out, 0.15);
+          if (imp > impact) { impact = imp; hitN = [nx, ny]; }
         }
       }
     }
@@ -343,6 +375,20 @@ export class Race {
         this._lastHit = this.visTime;
         if (impact > 6) this.hits++;
       }
+      if (this.damageOn && hitN && this.state === 'racing') {
+        // Côté touché : la normale pointe de l'obstacle vers la voiture.
+        const along = hitN[0] * c + hitN[1] * s;
+        const side = along < -0.5 ? 'front' : along > 0.5 ? 'rear' : 'side';
+        this.reportDamage(applyImpact(this.damage, impact, side));
+      }
+    }
+  }
+
+  reportDamage(crossed) {
+    for (const { part, level } of crossed) {
+      const words = { 0.3: 'touché(e)', 0.6: 'endommagé(e)', 0.9: 'hors d’usage' };
+      this.flash(`${PARTS_DAMAGE[part].icon} ${PARTS_DAMAGE[part].name} ${words[level]}`, 'warn', 1600);
+      if (level >= 0.6) this.app.codriver.say(`Attention, ${PARTS_DAMAGE[part].name.toLowerCase()} endommagée`);
     }
   }
 
@@ -350,6 +396,7 @@ export class Race {
     const p = this.phys;
     for (const e of p.events) {
       if (e.type === 'land') {
+        if (this.damageOn && this.state === 'racing') this.reportDamage(applyLanding(this.damage, e.impact));
         if (e.air > 0.25) {
           this.app.audio.thump(e.air);
           this.shake = Math.max(this.shake, Math.min(e.air * 0.7, 1));
@@ -501,7 +548,7 @@ export class Race {
     for (const m of this.medalTimes) if (total <= m.time) { medal = m; break; }
     return {
       key: this.key, stage: this.stage, time: total, prevBest, isBest, medal,
-      medalTimes: this.medalTimes, resets: this.resets, hits: this.hits, penalty: this.penalty,
+      medalTimes: this.medalTimes, resets: this.resets, hits: this.hits, penalty: this.penalty, damage: this.damage, tyre: this.tyre,
       splits: this.splitTimes, cheated: this.cheated, car: this.car,
       ghost: isBest ? { car: this.car.id, cfg: this.cfg, time: total, frames: this.ghostRec } : null,
     };
@@ -591,6 +638,12 @@ export class Race {
       }
       const marking = !p.airborne && (p.slide > 0.25 || p.lock || (drive && p.spin > 0.2));
       this.skids.track(w, tmp, marking, 0.24);
+    }
+    // Fumée moteur quand il est bien abîmé.
+    if (this.damage.engine > 0.45 && Math.random() < this.damage.engine * 0.8) {
+      const hood = m.body.localToWorld(new THREE.Vector3(this.car.dims.L * 0.38, 0.9, 0));
+      const grey = this._smokeCol || (this._smokeCol = new THREE.Color('#5d5d5d'));
+      this.dust.emit(hood.x, hood.y, hood.z, (Math.random() - 0.5) * 0.6, 1.2 + Math.random(), (Math.random() - 0.5) * 0.6, grey, 0.35, 0.5, 1.4, 1.8, -0.3);
     }
     this.dust.update(dt);
     this.flames.update(dt);

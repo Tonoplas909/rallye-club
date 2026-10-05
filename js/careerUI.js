@@ -6,6 +6,7 @@ import {
   recordStage, abandonTime, stageRanking, generalClassification, championship, driverName, driverFlag,
 } from './career.js';
 import { formatTime, formatDelta } from './util.js';
+import { TYRES, PARTS_DAMAGE, recommendedTyre, repairCost, repair, damageLabel } from './gameplay.js';
 
 const $ = (id) => document.getElementById(id);
 const ord = (n) => (n === 1 ? '1er' : `${n}e`);
@@ -53,6 +54,15 @@ export class CareerUI {
     el.querySelectorAll('[data-tab]').forEach((b) => { b.onclick = () => { this.tab = b.dataset.tab; this.render(); }; });
     el.querySelectorAll('[data-diff]').forEach((b) => { b.onclick = () => { this.difficulty = b.dataset.diff; this.render(); }; });
     el.querySelectorAll('[data-act]').forEach((b) => { b.onclick = () => this.act(b.dataset.act); });
+    el.querySelectorAll('[data-tyre]').forEach((b) => { b.onclick = () => { this.career.rally.tyre = b.dataset.tyre; save.persist(); this.render(); }; });
+    el.querySelectorAll('[data-repair]').forEach((b) => {
+      b.onclick = () => {
+        const r = this.career.rally;
+        r.service -= repair(r.damage, b.dataset.repair, r.service);
+        save.persist();
+        this.render();
+      };
+    });
   }
 
   welcomeHtml() {
@@ -89,12 +99,35 @@ export class CareerUI {
       const rank = t != null ? stageRanking(r, k).find((x) => x.id === PLAYER).pos : null;
       return `<li class="${r && k === r.stage ? 'next' : ''}"><span>${s.name}${s.powerStage ? ' <em>Power Stage</em>' : ''}</span><span>${(s.length / 1000).toFixed(1)} km</span><span>${t != null ? `${formatTime(t)} · ${ord(rank)}` : ''}</span></li>`;
     }).join('');
+    const service = r ? this.serviceHtml(r, stages[r.stage]) : '';
     const gc = r && r.stage > 0 ? `<h4>Classement général après ES${r.stage}</h4>${this.table(generalClassification(r, r.stage - 1), 'gap')}` : '<p class="hint">Le classement général apparaîtra après la première spéciale.</p>';
     return `
       <h3>${stages[0].country} ${cal.name}</h3>
       <div class="hint">Voiture : <b>${this.rallyCar().name}</b>${r ? ' (fixée jusqu’à la fin du rallye)' : ' · change-la au garage avant le départ'}</div>
       <ol class="stage-list-mini">${list}</ol>
+      ${service}
       ${gc}`;
+  }
+
+  // Parc d'assistance : réparations (budget en minutes) et choix des pneus pour la prochaine spéciale.
+  serviceHtml(r, next) {
+    const rec = recommendedTyre(next.surface, next.wet);
+    const tyre = r.tyre || rec;
+    const tyres = Object.entries(TYRES).map(([id, t]) => `<button class="tyre-btn ${tyre === id ? 'active' : ''}" data-tyre="${id}" title="${t.desc}">${t.icon} ${t.name}${id === rec ? ' <em>conseillé</em>' : ''}</button>`).join('');
+    const parts = Object.entries(PARTS_DAMAGE).map(([k, def]) => {
+      const v = r.damage[k];
+      const cost = repairCost(k, v);
+      return `<div class="svc-row"><span>${def.icon} ${def.name}</span>
+        <div class="svc-bar"><i style="width:${Math.round(v * 100)}%" class="${v < 0.3 ? 'ok' : v < 0.6 ? 'mid' : 'bad'}"></i></div>
+        <span class="svc-state">${damageLabel(v)}</span>
+        ${cost > 0 ? `<button class="btn small" data-repair="${k}" ${r.service <= 0 ? 'disabled' : ''}>Réparer · ${Math.min(cost, r.service)} min</button>` : '<span></span>'}</div>`;
+    }).join('');
+    return `<div class="service">
+      <h4>Parc d'assistance · <b>${r.service} min</b> restantes</h4>
+      ${parts}
+      <h4>Pneus pour ${next.name} (${SURFACES[next.surface].name.toLowerCase()})</h4>
+      <div class="tyre-row">${tyres}</div>
+    </div>`;
   }
 
   championshipHtml() {
@@ -152,19 +185,25 @@ export class CareerUI {
       save.persist();
       this.render();
     } else if (name === 'go') {
+      const c = this.career;
+      if (!c.rally) {
+        // Ouvre le rallye : choix des pneus au parc avant l'ES1.
+        startRally(c);
+        c.rally.car = save.selectedCar.id;
+        save.persist();
+        this.tab = 'rally';
+        this.render();
+        return;
+      }
       this.startStage();
     }
   }
 
   startStage() {
     const c = this.career;
-    if (!c.rally) {
-      startRally(c);
-      c.rally.car = save.selectedCar.id;
-      save.persist();
-    }
-    const st = rallyStages(c.rally.id, c.season)[c.rally.stage];
-    this.app.startRace(st, { career: true, car: this.rallyCar() });
+    const r = c.rally;
+    const st = rallyStages(r.id, c.season)[r.stage];
+    this.app.startRace(st, { career: true, car: this.rallyCar(), tyre: r.tyre || recommendedTyre(st.surface, st.wet), damage: r.damage });
   }
 
   // ------------------------------------------------------------- fin d'une spéciale

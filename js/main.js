@@ -5,6 +5,7 @@ import { CARS, COLORS, PARTS, STAGES, MEDALS, SURFACES, GARAGE_TABS, DAILY_SURFA
 import { save } from './save.js';
 import { Garage } from './garage.js';
 import { Race } from './race.js';
+import { SETUP } from './gameplay.js';
 import { Track } from './trackgen.js';
 import { Input } from './input.js';
 import { AudioFX, CoDriver } from './audio.js';
@@ -176,6 +177,7 @@ class App {
     $('btn-settings-close').onclick = () => $('screen-settings').classList.add('hidden');
     $('set-sound').onchange = (e) => { save.setSetting('sound', e.target.checked); this.audio.setEnabled(e.target.checked); };
     $('set-voice').onchange = (e) => { save.setSetting('voice', e.target.checked); this.codriver.enabled = e.target.checked; };
+    for (const k of ['abs', 'tc', 'esp', 'damage']) $(`set-${k}`).onchange = (e) => save.setSetting(k, e.target.checked);
     $('set-quality').onchange = (e) => { save.setSetting('quality', e.target.checked ? 'high' : 'low'); this.applyQuality(); this.resize(); };
     $('btn-reset').onclick = () => {
       if (!confirm('Effacer toute la progression (pièces, voitures, records) ?')) return;
@@ -243,6 +245,7 @@ class App {
     $('set-sound').checked = save.settings.sound;
     $('set-voice').checked = save.settings.voice;
     $('set-quality').checked = save.settings.quality !== 'low';
+    for (const k of ['abs', 'tc', 'esp', 'damage']) $(`set-${k}`).checked = !!save.settings[k];
     $('screen-settings').classList.remove('hidden');
   }
 
@@ -362,6 +365,31 @@ class App {
     const carId = this.viewCarId;
     const cfg = save.config(carId);
     const previewId = this.pending?.slot === sec.slot ? this.pending.id : null;
+
+    if (sec.kind === 'setup') {
+      const def = SETUP.find((d) => d.key === sec.slot);
+      const hint = document.createElement('div');
+      hint.className = 'hint';
+      hint.textContent = def.hint;
+      panel.appendChild(hint);
+      const grid = document.createElement('div');
+      grid.className = 'grid';
+      def.labels.forEach((label, i) => {
+        const v = i - 1;
+        const el = document.createElement('div');
+        el.className = `item${(cfg[sec.slot] || 0) === v ? ' equipped' : ''}`;
+        el.innerHTML = `<span class="name">${label}</span>`;
+        el.onclick = () => {
+          const c = save.config(carId);
+          c[sec.slot] = v;
+          save.setConfig(carId, c);
+          this.renderGarage();
+        };
+        grid.appendChild(el);
+      });
+      panel.appendChild(grid);
+      return;
+    }
 
     if (sec.kind === 'number') {
       const wrap = document.createElement('div');
@@ -491,7 +519,7 @@ class App {
     setTimeout(() => {
       try {
         const car = opts.car || save.selectedCar;
-        const race = new Race(this, { stage, car, cfg: save.config(car.id), career: !!opts.career });
+        const race = new Race(this, { stage, car, cfg: save.config(car.id), career: !!opts.career, tyre: opts.tyre, damage: opts.damage });
         race.load();
         this.race = race;
         this.mode = 'race';

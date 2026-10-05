@@ -35,6 +35,12 @@ Version en ligne : **https://tonoplas909.github.io/rallye-club/**. Elle est repu
 - Temps intermédiaires comparés au record, **fantôme** du meilleur passage, médailles or, argent et bronze.
 - Projections de terre, de neige, de sable ou de boue, traces de pneus, spectateurs qui sautent au passage, fumigènes la nuit.
 
+**Gameplay**
+- Dégâts mécaniques (moteur, direction, suspension) avec un effet réel sur la conduite ; parc d'assistance de 30 minutes entre les spéciales de carrière.
+- Pneus Terre, Asphalte, Pluie et Neige cloutés, avec une adhérence propre à chaque surface.
+- Réglages par voiture (boîte, suspension, freinage) et aides au pilotage (ABS, antipatinage, contrôle de stabilité).
+- Logique dans `js/gameplay.js` (module pur, testé).
+
 **Carrière**
 - Championnat de 6 rallyes de 3 spéciales face à 9 pilotes IA, avec un niveau et une surface favorite propres à chacun.
 - Classement général cumulé, points aux 10 premiers, Power Stage sur la dernière spéciale, 3 niveaux de difficulté, nouveaux tracés à chaque saison.
@@ -103,6 +109,7 @@ Voir [CHANGELOG.md](CHANGELOG.md). À chaque version, mettre à jour `VERSION` e
 index.html, css/style.css   interface (menus, HUD, garage, modales)
 js/main.js                  application, écrans, garage, économie
 js/career.js, careerUI.js   mode carrière (logique pure + écrans)
+js/gameplay.js              pneus, réglages, dégâts, réparations
 js/debug.js, version.js     panneau de debug, notes de version
 js/online.js, accountUI.js  comptes Supabase, sauvegarde cloud, classements
 js/merge.js                 fusion des sauvegardes locale / cloud

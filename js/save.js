@@ -25,7 +25,7 @@ function freshSave() {
     career: null,
     seenVersion: null,
     updatedAt: 0,
-    settings: { sound: true, voice: true, quality: 'high', camera: 0 },
+    settings: { sound: true, voice: true, quality: 'high', camera: 0, abs: true, tc: true, esp: false, damage: true },
   };
 }
 

@@ -2,6 +2,7 @@
 // Repère local : x vers l'avant, y vers la gauche. Monde 2D : (x, y), altitude à part.
 import { SURFACES } from './data.js';
 import { clamp, lerp, damp } from './util.js';
+import { setupEffects, damageEffects, tyreGrip } from './gameplay.js';
 
 const G = 9.81;
 
@@ -19,8 +20,14 @@ const HEIGHT_MODS = {
 const tire = (alpha, B) => Math.sin(1.3 * Math.atan(B * alpha));
 
 export class CarPhysics {
-  constructor(car, cfg = {}) {
+  // opts : { tyre, damage, assists: { abs, tc, esp }, surface } (tous facultatifs).
+  constructor(car, cfg = {}, opts = {}) {
     this.car = car;
+    this.tyre = opts.tyre || null;
+    this.damage = opts.damage || null; // objet partagé, modifié par la course lors des chocs
+    this.assists = opts.assists || {};
+    this.setup = setupEffects(cfg, opts.surface);
+    this.top = car.top * this.setup.topMult;
     const d = car.dims;
     this.m = car.mass;
     const front = car.shape === 'wedge' ? 0.56 : car.drive === 'FWD' ? 0.42 : car.shape === 'coupe' ? 0.58 : 0.48;
@@ -30,11 +37,11 @@ export class CarPhysics {
     this.cgh = 0.5;
     this.I = (this.m * (d.L * d.L + d.W * d.W)) / 12 * 0.95; // un peu vif : c'est un jeu d'arcade
     this.power = car.power * 1000;
-    this.cd = this.power / car.top ** 3;
+    this.cd = this.power / this.top ** 3;
     this.split = DRIVE_SPLIT[car.drive];
     this.hmod = HEIGHT_MODS[cfg.height] || HEIGHT_MODS.stock;
     this.offroadPenalty = (car.offroad ?? 1) * this.hmod.offroad;
-    this.gearTops = [0.28, 0.43, 0.58, 0.72, 0.86, 1.0].map((k) => k * car.top);
+    this.gearTops = [0.28, 0.43, 0.58, 0.72, 0.86, 1.0].map((k) => k * this.top);
     this.reset(0, 0, 0, 0);
   }
 
@@ -47,6 +54,7 @@ export class CarPhysics {
     this.gear = 1; this.rpm = 900; this.reverse = false;
     this.rotF = 0; this.rotR = 0;
     this.slide = 0; this.spin = 0; this.lock = 0;
+    this.absActive = false; this.tcActive = false; this.espActive = false;
     this.surface = 'gravel'; this.offroad = false;
     this.events = [];
     this.hint = -1;
@@ -68,14 +76,16 @@ export class CarPhysics {
     const car = this.car;
     const speed = this.speed;
     const vx = this.vx, vy = this.vy, r = this.r;
+    const dmg = damageEffects(this.damage || {});
 
     // --- Direction : limitée avec la vitesse, sauf en contre-braquage.
-    let limit = (car.steer * TUNING.steer) / (1 + speed / 22);
+    let limit = (car.steer * TUNING.steer * dmg.steerMult) / (1 + speed / 22);
     if (input.steer * vy > 0 && speed > 5) {
       const beta = Math.abs(Math.atan2(vy, Math.abs(vx)));
       limit = Math.max(limit, Math.min(car.steer, beta * 0.95 + 0.06));
     }
-    const target = clamp(input.steer, -1, 1) * limit;
+    // Direction faussée : la voiture tire d'un côté.
+    const target = clamp(input.steer, -1, 1) * limit + dmg.pull * clamp(speed / 15, 0, 1);
     this.steer += clamp(target - this.steer, -4.5 * dt, 4.5 * dt);
 
     // --- Surface sous la voiture.
@@ -93,7 +103,10 @@ export class CarPhysics {
       roll = lerp(roll, off.roll, p);
       B = off.B;
     }
-    mu *= car.grip * this.hmod.grip * TUNING.grip;
+    let tyreK = tyreGrip(this.tyre, track.surface, track.wet);
+    if (q.offroad) tyreK = lerp(tyreK, tyreGrip(this.tyre, track.offroadSurface, false), Math.min(q.offroadBlend, 1));
+    if (track.wet && !q.offroad && track.surface === 'tarmac') mu *= 0.78;
+    mu *= car.grip * this.hmod.grip * TUNING.grip * tyreK * this.setup.gripMult * dmg.gripMult;
 
     // --- Vertical : suit le sol, décolle si le sol tombe plus vite que la gravité.
     const ground = q.height;
@@ -134,7 +147,8 @@ export class CarPhysics {
       brake = 0;
     } else {
       if (throttle > 0.1 && vx < -0.5) { brake = throttle; throttle = 0; }
-      drive = throttle * Math.min(m * G * 1.3, (this.power * TUNING.power) / Math.max(Math.abs(vx), 6));
+      const fm = this.setup.forceMult;
+      drive = throttle * Math.min(m * G * 1.3 * fm, (this.power * TUNING.power * dmg.powerMult * fm) / Math.max(Math.abs(vx), 6));
     }
 
     let FxF = 0, FxR = 0, FyF = 0, FyR = 0;
@@ -146,14 +160,25 @@ export class CarPhysics {
       const FmaxF = mu * Wf, FmaxR = mu * Wr;
 
       const dir = vx >= 0 ? 1 : -1;
+      // ABS : le freinage reste sous la limite de blocage, la voiture garde sa direction.
+      this.absActive = !!this.assists.abs && brake > 0.8 && Math.abs(vx) > 3;
+      if (this.absActive) brake = 0.8;
       const brakeF = brake * mu * m * G * 0.95;
       const stopK = clamp(Math.abs(vx) / 0.6, 0, 1);
-      const wantF = drive * this.split[0] - dir * brakeF * 0.62 * stopK;
-      const wantR = drive * this.split[1] - dir * (brakeF * 0.38 + hb * FmaxR * 0.9) * stopK;
+      const fb = this.setup.frontBrake;
+      let driveF = drive * this.split[0], driveR = drive * this.split[1];
+      // Antipatinage : coupe la puissance avant que les roues ne patinent.
+      this.tcActive = false;
+      if (this.assists.tc && !this.reverse) {
+        if (Math.abs(driveF) > FmaxF * 0.92) { driveF = Math.sign(driveF) * FmaxF * 0.92; this.tcActive = true; }
+        if (Math.abs(driveR) > FmaxR * 0.85) { driveR = Math.sign(driveR) * FmaxR * 0.85; this.tcActive = true; }
+      }
+      const wantF = driveF - dir * brakeF * fb * stopK;
+      const wantR = driveR - dir * (brakeF * (1 - fb) + hb * FmaxR * 0.9) * stopK;
       FxF = clamp(wantF, -FmaxF, FmaxF);
       FxR = clamp(wantR, -FmaxR, FmaxR);
       this.spin = Math.max(Math.abs(wantF) - FmaxF, Math.abs(wantR) - FmaxR, 0) / (m * G * 0.3);
-      this.lock = (brake > 0.6 || hb) && Math.abs(vx) > 3 ? 1 : 0;
+      this.lock = ((brake > 0.6 && !this.absActive) || hb) && Math.abs(vx) > 3 ? 1 : 0;
 
       // Cercle de friction : l'effort longitudinal réduit l'adhérence latérale.
       const latF = FmaxF * Math.sqrt(1 - 0.45 * (FxF / FmaxF) ** 2);
@@ -208,6 +233,15 @@ export class CarPhysics {
       nr = lerp(kin, nr, lowK);
       nvy *= 1 - (1 - lowK) * Math.min(1, 10 * dt);
       if (speed < 0.3 && throttle < 0.05 && !this.reverse) { nvx *= 0.9; }
+      // Contrôle de stabilité : ramène la rotation vers la trajectoire voulue en cas de forte glisse.
+      this.espActive = false;
+      if (this.assists.esp && speed > 8 && !input.handbrake) {
+        const beta = Math.atan2(nvy, Math.abs(nvx));
+        if (Math.abs(beta) > 0.16) {
+          nr = lerp(nr, kin, Math.min(1, 2.5 * dt));
+          this.espActive = true;
+        }
+      }
     }
     this.vx = nvx; this.vy = nvy; this.r = nr;
 

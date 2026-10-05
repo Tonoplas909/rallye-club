@@ -1,8 +1,20 @@
 // Version du jeu et notes de version affichées dans « Nouveautés ».
 // Garder CHANGELOG.md synchronisé avec cette liste.
-export const VERSION = '1.3.0';
+export const VERSION = '1.4.0';
 
 export const RELEASES = [
+  {
+    version: '1.4.0',
+    date: '2026-10-05',
+    title: 'Dégâts, pneus et réglages',
+    notes: [
+      'Dégâts mécaniques : les chocs et les réceptions trop dures abîment le moteur (moins de puissance), la direction (la voiture tire d’un côté) et la suspension (moins d’adhérence). L’état s’affiche en haut à gauche.',
+      'Carrière : les dégâts restent d’une spéciale à l’autre. Au parc d’assistance, tu as 30 minutes pour réparer entre deux spéciales.',
+      'Choix des pneus en carrière : Terre, Asphalte, Pluie ou Neige cloutés. Le bon pneu sur la bonne surface fait gagner de précieuses secondes.',
+      'Nouvel onglet Réglages au garage : boîte courte ou longue, suspension souple ou ferme, répartition de freinage.',
+      'Aides au pilotage réglables dans les paramètres : ABS, antipatinage et contrôle de stabilité. Les témoins s’allument sur le compteur quand elles interviennent. Les dégâts peuvent aussi être désactivés.',
+    ],
+  },
   {
     version: '1.3.0',
     date: '2026-10-05',

@@ -3,6 +3,7 @@
 import { STAGES } from './data.js';
 import { Track } from './trackgen.js';
 import { mulberry32 } from './util.js';
+import { SERVICE_MINUTES } from './gameplay.js';
 
 export const STAGES_PER_RALLY = 3;
 export const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
@@ -107,6 +108,10 @@ export function startRally(career, refTimesFn = (s) => new Track(s).refTime) {
     stage: 0,
     times: { [PLAYER]: [], ...aiTimes(refs, stages, career.season, career.difficulty) },
     car: null,
+    // Les dégâts restent d'une spéciale à l'autre ; on répare au parc d'assistance.
+    damage: { engine: 0, steering: 0, suspension: 0, pull: (career.rallyIndex % 2) * 2 - 1 },
+    tyre: null,
+    service: SERVICE_MINUTES,
   };
   return career.rally;
 }
@@ -144,6 +149,7 @@ export function recordStage(career, timeMs) {
   const k = rally.stage;
   rally.times[PLAYER][k] = Math.round(timeMs);
   rally.stage++;
+  rally.service = SERVICE_MINUTES;
   const summary = { k, stage: stageRanking(rally, k), gc: generalClassification(rally, k), rallyDone: rally.stage >= STAGES_PER_RALLY };
   if (summary.rallyDone) summary.rally = finishRally(career);
   return summary;

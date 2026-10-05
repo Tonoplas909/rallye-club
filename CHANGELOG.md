@@ -2,6 +2,13 @@
 
 Les mêmes notes s'affichent dans le jeu (menu → « Nouveautés »). La source est `js/version.js`.
 
+## v1.4.0 — 05/10/2026 · Dégâts, pneus et réglages
+- Dégâts mécaniques : les chocs et les réceptions trop dures abîment le moteur (moins de puissance), la direction (la voiture tire d’un côté) et la suspension (moins d’adhérence). L’état s’affiche en haut à gauche.
+- Carrière : les dégâts restent d’une spéciale à l’autre. Au parc d’assistance, tu as 30 minutes pour réparer entre deux spéciales.
+- Choix des pneus en carrière : Terre, Asphalte, Pluie ou Neige cloutés. Le bon pneu sur la bonne surface fait gagner de précieuses secondes.
+- Nouvel onglet Réglages au garage : boîte courte ou longue, suspension souple ou ferme, répartition de freinage.
+- Aides au pilotage réglables dans les paramètres : ABS, antipatinage et contrôle de stabilité. Les témoins s’allument sur le compteur quand elles interviennent. Les dégâts peuvent aussi être désactivés.
+
 ## v1.3.0 — 05/10/2026 · Mode carrière
 - Nouveau mode Carrière : un championnat de 6 rallyes (Vosges, Corse, Suède, Maroc, Galles, Monte-Carlo) de 3 spéciales chacun.
 - Affronte 9 pilotes IA, chacun avec son niveau et sa surface favorite. Les temps s'additionnent au classement général.

@@ -164,7 +164,7 @@ export function defaultConfig(car) {
     paint: 'blanc', finish: 'gloss', livery: 'none', livery2: 'rouge', number: 1 + (car.price % 97 || 7),
     rims: 'branches', rimColor: 'gris', spoiler: 'none', hood: 'stock', roof: 'none',
     lights: 'none', mudflaps: 'none', height: 'stock', tint: 'dark', dust: 'natural',
-    neon: 'none', exhaust: 'stock', ...car.defaults,
+    neon: 'none', exhaust: 'stock', gears: 0, susp: 0, bias: 0, ...car.defaults,
   };
 }
 
@@ -210,6 +210,14 @@ export const GARAGE_TABS = [
   {
     id: 'height', label: 'Suspension', icon: '🔧', focus: 'side',
     sections: [{ title: 'Garde au sol', slot: 'height', kind: 'part', hint: 'Bas : +grip sur asphalte. Haut : moins pénalisé hors piste.' }],
+  },
+  {
+    id: 'setup', label: 'Réglages', icon: '🔩', focus: 'side',
+    sections: [
+      { title: 'Boîte de vitesses', slot: 'gears', kind: 'setup' },
+      { title: 'Suspension', slot: 'susp', kind: 'setup' },
+      { title: 'Répartition de freinage', slot: 'bias', kind: 'setup' },
+    ],
   },
   {
     id: 'fx', label: 'Effets', icon: '✨', focus: 'threeq',

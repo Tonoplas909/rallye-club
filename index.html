@@ -75,6 +75,7 @@
       <div id="hud-stage"></div>
       <div id="hud-progress"><div id="hud-progress-fill"></div><div id="hud-ghost"></div></div>
       <div id="hud-penalty"></div>
+      <div id="hud-damage"></div>
     </div>
     <div class="hud-top-center">
       <div id="hud-time">0:00.000</div>
@@ -90,6 +91,7 @@
       <div class="speed-row"><span id="hud-speed">0</span><span class="unit">km/h</span></div>
       <div class="rpm"><div id="hud-rpm"></div></div>
       <div class="gear">Rapport <b id="hud-gear">N</b></div>
+      <div class="assists" id="hud-assists"></div>
     </div>
     <div id="touch" class="touch hidden">
       <div class="touch-left">
@@ -152,6 +154,11 @@
       <label class="toggle"><span>Son</span><input type="checkbox" id="set-sound" /></label>
       <label class="toggle"><span>Copilote vocal</span><input type="checkbox" id="set-voice" /></label>
       <label class="toggle"><span>Graphismes haute qualité</span><input type="checkbox" id="set-quality" /></label>
+      <h4 class="set-h">Aides au pilotage</h4>
+      <label class="toggle"><span>ABS <small>freinage sans blocage des roues</small></span><input type="checkbox" id="set-abs" /></label>
+      <label class="toggle"><span>Antipatinage <small>limite le patinage à l’accélération</small></span><input type="checkbox" id="set-tc" /></label>
+      <label class="toggle"><span>Contrôle de stabilité <small>retient les glisses trop fortes</small></span><input type="checkbox" id="set-esp" /></label>
+      <label class="toggle"><span>Dégâts mécaniques <small>les chocs abîment la voiture</small></span><input type="checkbox" id="set-damage" /></label>
       <p class="hint">Manette compatible : gâchettes pour gaz/frein, X ou RB frein à main, Y remise en piste.</p>
       <button class="btn danger" id="btn-reset">Réinitialiser la progression</button>
       <button class="btn big primary" id="btn-settings-close">Fermer</button>

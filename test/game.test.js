@@ -58,7 +58,7 @@ test('les défauts de chaque voiture pointent vers des pièces existantes', () =
   for (const car of CARS) {
     const cfg = defaultConfig(car);
     for (const [slot, id] of Object.entries(cfg)) {
-      if (slot === 'number') continue;
+      if (['number', 'gears', 'susp', 'bias'].includes(slot)) continue;
       if (['paint', 'livery2', 'rimColor'].includes(slot)) assert.ok(COLORS.some((c) => c.id === id), `${car.id}.${slot}=${id}`);
       else assert.ok(PARTS[slot].some((p) => p.id === id), `${car.id}.${slot}=${id}`);
     }

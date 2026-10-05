@@ -347,3 +347,31 @@ body.dbg-nohud #hud { display: none; }
   .cres-tables { grid-template-columns: 1fr; }
   .career-actions .btn.big { width: 100%; min-width: 0; }
 }
+
+/* ---------- Dégâts, aides ---------- */
+#hud-damage { display: flex; gap: 6px; margin-top: 8px; }
+#hud-damage span { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-size: 16px; background: rgba(0,0,0,0.45); border: 2px solid rgba(255,255,255,0.15); }
+#hud-damage .dmg.ok { border-color: rgba(61,220,132,0.6); }
+#hud-damage .dmg.light { border-color: #ffd23f; }
+#hud-damage .dmg.mid { border-color: #ff8a1f; background: rgba(255,138,31,0.25); }
+#hud-damage .dmg.bad { border-color: var(--bad); background: rgba(255,77,94,0.35); animation: blink 0.8s infinite; }
+@keyframes blink { 50% { opacity: 0.5; } }
+.assists { display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px; }
+.assists span { font-size: 10px; font-weight: 900; padding: 1px 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); color: var(--muted); }
+.assists span.on { background: var(--accent); color: #1a1205; border-color: var(--accent); }
+.toggle small { display: block; font-weight: 500; font-size: 11px; color: var(--muted); }
+.set-h { margin: 10px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+/* ---------- Parc d'assistance ---------- */
+.service { background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 12px; padding: 4px 12px 12px; margin: 10px 0; }
+.service h4 b { color: var(--accent); }
+.svc-row { display: grid; grid-template-columns: 120px 1fr 70px 150px; align-items: center; gap: 10px; margin: 6px 0; font-size: 13px; }
+.svc-bar { height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+.svc-bar i { display: block; height: 100%; }
+.svc-bar i.ok { background: var(--good); } .svc-bar i.mid { background: #ff8a1f; } .svc-bar i.bad { background: var(--bad); }
+.svc-state { color: var(--muted); font-size: 12px; }
+.tyre-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.tyre-btn { border: 1px solid var(--line); background: rgba(255,255,255,0.04); border-radius: 10px; padding: 7px 10px; font-weight: 800; cursor: pointer; font-size: 13px; }
+.tyre-btn.active { border-color: var(--accent); background: rgba(255,194,26,0.15); }
+.tyre-btn em { font-style: normal; font-size: 10px; color: var(--good); margin-left: 4px; }
+@media (max-width: 760px) { .svc-row { grid-template-columns: 100px 1fr 120px; } .svc-state { display: none; } }
