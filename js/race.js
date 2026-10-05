@@ -31,8 +31,9 @@ const GRADE_WORDS = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six'];
 const $ = (id) => document.getElementById(id);
 
 export class Race {
-  constructor(app, { stage, car, cfg, key }) {
+  constructor(app, { stage, car, cfg, key, career = false }) {
     this.app = app;
+    this.career = career;
     this.stage = stage;
     this.car = car;
     this.cfg = cfg;
@@ -270,7 +271,7 @@ export class Race {
       this.phys.rpm = damp(this.phys.rpm, 1100 + ctrl.throttle * 5500, 8, dt);
       ctrl = { throttle: 0, brake: 1, steer: ctrl.steer, handbrake: true };
     } else if (this.state === 'finished') {
-      ctrl = this.autopilot.input();
+      ctrl = (this.autopilot ||= new AIDriver(this.track, this.phys)).input();
       ctrl.throttle = 0;
       ctrl.brake = 0.6;
     }

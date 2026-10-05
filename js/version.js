@@ -1,8 +1,20 @@
 // Version du jeu et notes de version affichées dans « Nouveautés ».
 // Garder CHANGELOG.md synchronisé avec cette liste.
-export const VERSION = '1.2.0';
+export const VERSION = '1.3.0';
 
 export const RELEASES = [
+  {
+    version: '1.3.0',
+    date: '2026-10-05',
+    title: 'Mode carrière',
+    notes: [
+      'Nouveau mode Carrière : un championnat de 6 rallyes (Vosges, Corse, Suède, Maroc, Galles, Monte-Carlo) de 3 spéciales chacun.',
+      'Affronte 9 pilotes IA, chacun avec son niveau et sa surface favorite. Les temps s’additionnent au classement général.',
+      'Points aux 10 premiers (25, 18, 15…) et Power Stage sur la dernière spéciale de chaque rallye (+3, +2, +1).',
+      '3 niveaux de difficulté, nouveaux tracés à chaque saison, primes de fin de rallye et de fin de saison.',
+      'En carrière, pas de seconde chance : une spéciale ne se recourt pas, et un abandon donne un temps forfaitaire.',
+    ],
+  },
   {
     version: '1.2.0',
     date: '2026-10-02',

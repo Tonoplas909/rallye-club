@@ -11,12 +11,14 @@ import { AudioFX, CoDriver } from './audio.js';
 import { DebugPanel } from './debug.js';
 import { Online } from './online.js';
 import { AccountUI } from './accountUI.js';
+import { CareerUI } from './careerUI.js';
 import { VERSION, RELEASES } from './version.js';
 import { formatTime, formatDelta, hashString, mulberry32, todayKey } from './util.js';
 
 const $ = (id) => document.getElementById(id);
 const SURF_COLORS = { gravel: '#b48a5a', tarmac: '#8a8f99', snow: '#cfe3ff', sand: '#e0b86e', mud: '#6b4a2e' };
 const COLOR_SLOTS = new Set(['paint', 'livery2', 'rimColor']);
+const SCREENS = ['menu', 'stages', 'garage', 'career'];
 const MEDAL_RANK = { gold: 0, silver: 1, bronze: 2 };
 
 function dailyStage() {
@@ -67,6 +69,7 @@ class App {
     this.debug = new DebugPanel(this);
     this.online = new Online();
     this.account = new AccountUI(this, this.online);
+    this.career = new CareerUI(this);
     this.resize();
     window.addEventListener('resize', () => this.resize());
     this.showScreen('menu');
@@ -123,10 +126,10 @@ class App {
   // ------------------------------------------------------------- écrans
   showScreen(name) {
     this.screen = name;
-    for (const s of ['menu', 'stages', 'garage']) $(`screen-${s}`).classList.toggle('hidden', s !== name);
-    $('topbar').classList.toggle('hidden', !['menu', 'stages', 'garage'].includes(name));
+    for (const s of SCREENS) $(`screen-${s}`).classList.toggle('hidden', s !== name);
+    $('topbar').classList.toggle('hidden', !SCREENS.includes(name));
     $('btn-back').classList.toggle('hidden', name === 'menu');
-    $('topbar-title').textContent = { menu: '', stages: 'SPÉCIALES', garage: 'GARAGE' }[name] || '';
+    $('topbar-title').textContent = { menu: '', stages: 'COURSE LIBRE', garage: 'GARAGE', career: 'CARRIÈRE' }[name] || '';
     this.updateCoins();
     if (name === 'menu') {
       this.revertPreview();
@@ -140,6 +143,7 @@ class App {
       $('daily-sub').textContent = save.data.daily[ds.id] ? 'Déjà terminé aujourd’hui — record à battre !' : `${SURFACES[ds.surface].name} · +500 🪙 bonus`;
     }
     if (name === 'stages') { this.garage.focus('threeq'); this.renderStages(); }
+    if (name === 'career') { this.garage.focus('threeq'); this.career.render(); }
     if (name === 'garage') { this.renderGarage(); }
   }
 
@@ -163,6 +167,7 @@ class App {
 
   bindUI() {
     $('btn-play').onclick = () => this.showScreen('stages');
+    $('btn-career').onclick = () => this.showScreen('career');
     $('btn-garage').onclick = () => { this.tab = 'cars'; this.showScreen('garage'); };
     $('btn-daily').onclick = () => this.startRace(dailyStage());
     $('btn-back').onclick = () => this.back();
@@ -181,8 +186,21 @@ class App {
     };
     $('btn-pause').onclick = () => this.pauseRace();
     $('btn-resume').onclick = () => this.resumeRace();
-    $('btn-restart').onclick = () => { $('screen-pause').classList.add('hidden'); this.paused = false; this.startRace(this.race.stage); };
-    $('btn-quit').onclick = () => { $('screen-pause').classList.add('hidden'); this.exitRace('stages'); };
+    $('btn-restart').onclick = () => { $('screen-pause').classList.add('hidden'); this.paused = false; this.startRace(this.race.stage, this.raceOpts); };
+    $('btn-quit').onclick = () => {
+      if (this.race?.career) {
+        // En carrière, abandonner donne un temps forfaitaire au classement.
+        if (!confirm('Abandonner la spéciale ? Tu recevras le temps du plus lent plus une minute.')) return;
+        $('screen-pause').classList.add('hidden');
+        this.paused = false;
+        this.race.state = 'finished';
+        this.audio.setEngineActive(false);
+        this.career.abandon();
+        return;
+      }
+      $('screen-pause').classList.add('hidden');
+      this.exitRace('stages');
+    };
     $('btn-res-retry').onclick = () => { $('screen-results').classList.add('hidden'); this.startRace(this.race.stage); };
     $('btn-res-stages').onclick = () => { $('screen-results').classList.add('hidden'); this.exitRace('stages'); };
     $('btn-res-garage').onclick = () => { $('screen-results').classList.add('hidden'); this.tab = 'cars'; this.exitRace('garage'); };
@@ -462,7 +480,8 @@ class App {
   }
 
   // ------------------------------------------------------------- course
-  startRace(stage) {
+  startRace(stage, opts = {}) {
+    this.raceOpts = opts;
     this.audio.init();
     this.revertPreview(false);
     $('loading').classList.remove('hidden');
@@ -471,13 +490,13 @@ class App {
     // Laisse le temps à l'écran de chargement de s'afficher.
     setTimeout(() => {
       try {
-        const car = save.selectedCar;
-        const race = new Race(this, { stage, car, cfg: save.config(car.id) });
+        const car = opts.car || save.selectedCar;
+        const race = new Race(this, { stage, car, cfg: save.config(car.id), career: !!opts.career });
         race.load();
         this.race = race;
         this.mode = 'race';
         this.paused = false;
-        for (const s of ['menu', 'stages', 'garage']) $(`screen-${s}`).classList.add('hidden');
+        for (const s of SCREENS) $(`screen-${s}`).classList.add('hidden');
         $('topbar').classList.add('hidden');
         $('hud').classList.remove('hidden');
         $('touch').classList.toggle('hidden', !this.isTouch);
@@ -485,7 +504,7 @@ class App {
       } catch (err) {
         console.error(err);
         this.toast('Erreur au chargement de la spéciale', true);
-        this.exitRace('stages');
+        this.exitRace(opts.career ? 'career' : 'stages');
       }
       $('loading').classList.add('hidden');
     }, 40);
@@ -494,6 +513,7 @@ class App {
   pauseRace() {
     if (!this.race || this.paused) return;
     this.paused = true;
+    $('btn-restart').classList.toggle('hidden', !!this.race.career);
     this.audio.setEngineActive(false);
     this.codriver.stop();
     $('screen-pause').classList.remove('hidden');
@@ -517,6 +537,7 @@ class App {
 
   raceFinished(r) {
     if (!this.race) return;
+    if (this.race.career) { this.career.onStageFinished(r); return; }
     const st = r.stage;
     const rewards = [['Arrivée', st.reward]];
     if (r.medal) {

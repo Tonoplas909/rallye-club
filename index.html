@@ -35,7 +35,8 @@
       <div class="menu-car-desc" id="menu-car-desc"></div>
     </div>
     <div class="menu-buttons">
-      <button class="btn big primary" id="btn-play">COURIR <small>Choisir une spéciale</small></button>
+      <button class="btn big primary" id="btn-career">CARRIÈRE <small>Championnat de 6 rallyes</small></button>
+      <button class="btn big" id="btn-play">COURSE LIBRE <small>Choisir une spéciale</small></button>
       <button class="btn big" id="btn-daily">DÉFI DU JOUR <small id="daily-sub"></small></button>
       <button class="btn big" id="btn-garage">GARAGE <small>Voitures & personnalisation</small></button>
     </div>
@@ -64,6 +65,9 @@
       <button class="btn primary" id="btn-buy">Acheter</button>
     </div>
   </section>
+
+  <!-- Carrière -->
+  <section id="screen-career" class="screen hidden"></section>
 
   <!-- HUD course -->
   <section id="hud" class="hidden">
@@ -125,6 +129,19 @@
         <button class="btn" id="btn-res-garage">Garage</button>
         <button class="btn primary" id="btn-res-retry">Rejouer</button>
       </div>
+    </div>
+  </section>
+
+  <!-- Résultat d'une spéciale en carrière -->
+  <section id="screen-career-result" class="modal hidden">
+    <div class="modal-box results career-result">
+      <div class="res-stage" id="cres-title"></div>
+      <div class="res-time" id="cres-time"></div>
+      <div class="res-sub" id="cres-sub"></div>
+      <div class="cres-tables" id="cres-tables"></div>
+      <div id="cres-banner"></div>
+      <div class="res-rewards" id="cres-rewards"></div>
+      <button class="btn big primary" id="btn-career-continue">Continuer</button>
     </div>
   </section>
 

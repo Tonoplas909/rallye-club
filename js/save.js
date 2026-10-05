@@ -22,6 +22,7 @@ function freshSave() {
     medals: {},
     finished: {},
     daily: {},
+    career: null,
     seenVersion: null,
     updatedAt: 0,
     settings: { sound: true, voice: true, quality: 'high', camera: 0 },

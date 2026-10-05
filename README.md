@@ -35,6 +35,11 @@ Version en ligne : **https://tonoplas909.github.io/rallye-club/**. Elle est repu
 - Temps intermédiaires comparés au record, **fantôme** du meilleur passage, médailles or, argent et bronze.
 - Projections de terre, de neige, de sable ou de boue, traces de pneus, spectateurs qui sautent au passage, fumigènes la nuit.
 
+**Carrière**
+- Championnat de 6 rallyes de 3 spéciales face à 9 pilotes IA, avec un niveau et une surface favorite propres à chacun.
+- Classement général cumulé, points aux 10 premiers, Power Stage sur la dernière spéciale, 3 niveaux de difficulté, nouveaux tracés à chaque saison.
+- La logique (calendrier, temps IA, classements, points) est dans `js/career.js`, testée sans navigateur. L'interface est dans `js/careerUI.js`.
+
 **Garage (façon Drift Club)**
 - 6 voitures : traction, propulsion et 4x4, chacune avec ses caractéristiques (de la Fennec R2 à la Vortex WRC).
 - Personnalisation propre à chaque voiture : 16 peintures, 5 finitions (brillant, mat, métallisé, nacré, chrome), 9 livrées avec couleur secondaire et numéro de course, 5 modèles de jantes avec leur couleur, ailerons, capots, toit (écope, galerie avec roue de secours), bavettes, longues portées (utiles de nuit), garde au sol (effet sur l'adhérence), teinte des vitres, couleur des projections (jusqu'à l'arc-en-ciel), néons et échappement anti-lag qui crache des flammes.
@@ -97,6 +102,7 @@ Voir [CHANGELOG.md](CHANGELOG.md). À chaque version, mettre à jour `VERSION` e
 ```
 index.html, css/style.css   interface (menus, HUD, garage, modales)
 js/main.js                  application, écrans, garage, économie
+js/career.js, careerUI.js   mode carrière (logique pure + écrans)
 js/debug.js, version.js     panneau de debug, notes de version
 js/online.js, accountUI.js  comptes Supabase, sauvegarde cloud, classements
 js/merge.js                 fusion des sauvegardes locale / cloud
@@ -116,4 +122,4 @@ js/data.js                  catalogue (voitures, pièces, couleurs, spéciales)
 npm test
 ```
 
-Les tests s'exécutent dans Node, sans navigateur. Ils vérifient que les spéciales sont déterministes, que les tracés ne se recoupent pas, qu'un pilote automatique termine chaque spéciale avec chaque voiture, et que la fusion des sauvegardes locale / cloud se comporte comme prévu.
+Les tests s'exécutent dans Node, sans navigateur. Ils vérifient que les spéciales sont déterministes, que les tracés ne se recoupent pas, qu'un pilote automatique termine chaque spéciale avec chaque voiture, que la fusion des sauvegardes locale / cloud se comporte comme prévu, et qu'une saison de carrière complète attribue correctement les points.
