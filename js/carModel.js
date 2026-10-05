@@ -247,6 +247,39 @@ export function buildCar(car, cfg, opts = {}) {
     return m;
   };
 
+  // Montants de pare-brise et de lunette arrière, joints de portes, bas de caisse.
+  const cabinHalf = (W * 0.74) / 2 + 0.06;
+  const pillar = (a, b, z) => {
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const len = Math.hypot(dx, dy);
+    addPainted(new THREE.BoxGeometry(len, 0.07, 0.05), (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, z, new THREE.Euler(0, 0, Math.atan2(dy, dx)));
+  };
+  const seam = new THREE.MeshBasicMaterial({ color: 0x0a0a0c });
+  const beltY = cabinPts[0][1];
+  for (const sz of [-1, 1]) {
+    pillar(cabinPts[3], cabinPts[2], sz * cabinHalf);
+    pillar(cabinPts[0], cabinPts[1], sz * cabinHalf);
+    const bx = (cabinPts[1][0] + cabinPts[2][0]) / 2;
+    addPainted(new THREE.BoxGeometry(0.07, cabinPts[1][1] - beltY, 0.05), bx, (beltY + cabinPts[1][1]) / 2, sz * cabinHalf);
+    // Joints de portes (traits sombres sur le flanc).
+    const doorH = beltY - floor - 0.12;
+    for (const dx of [cabinPts[3][0] - 0.08, bx]) {
+      addMesh(new THREE.BoxGeometry(0.012, doorH, 0.004), seam, dx, floor + 0.06 + doorH / 2, sz * (W / 2 + bevel + 0.002));
+    }
+    // Bas de caisse.
+    const skirtL = (axleF - archR) - (axleR + archR) - 0.1;
+    if (skirtL > 0.3) addMesh(new THREE.BoxGeometry(skirtL, 0.09, 0.05), blackPlastic(), (axleF + axleR) / 2, floor + 0.03, sz * (W / 2 + bevel - 0.01));
+  }
+
+  // Pick-up : plateau arrière avec ridelles.
+  if (car.shape === 'pickup') {
+    const x0 = -half + 0.12, x1 = cabinPts[0][0] - 0.08;
+    const deckY = profileY(topPts, (x0 + x1) / 2);
+    addMesh(new THREE.BoxGeometry(x1 - x0, 0.03, W * 0.86), blackPlastic(), (x0 + x1) / 2, deckY + 0.015, 0);
+    for (const sz of [-1, 1]) addPainted(new THREE.BoxGeometry(x1 - x0, 0.22, 0.05), (x0 + x1) / 2, deckY + 0.11, sz * (W / 2 - 0.02));
+    addPainted(new THREE.BoxGeometry(0.05, 0.22, W - 0.04), x0, deckY + 0.11, 0);
+  }
+
   // Élargisseurs d'ailes (WRC / raid).
   if (shape.flares || shape.blackFlares) {
     for (const ax of [axleF, axleR]) for (const sz of [-1, 1]) {

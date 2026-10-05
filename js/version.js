@@ -1,8 +1,20 @@
 // Version du jeu et notes de version affichées dans « Nouveautés ».
 // Garder CHANGELOG.md synchronisé avec cette liste.
-export const VERSION = '1.5.0';
+export const VERSION = '1.6.0';
 
 export const RELEASES = [
+  {
+    version: '1.6.0',
+    date: '2026-10-05',
+    title: 'Son, lumières et finition',
+    notes: [
+      'Son moteur entièrement refait : caractère propre à chaque voiture (4, 5 ou 6 cylindres), sifflement et soupape de décharge du turbo, rupteur, coupure au passage des rapports.',
+      'Chuintement des pneus et gerbes d’eau derrière les roues sur route mouillée.',
+      'Effet de lueur (bloom) en qualité haute : phares, longues portées, néons, feux arrière et fumigènes brillent, surtout de nuit.',
+      'Voitures plus détaillées : montants de pare-brise et de lunette, joints de portes, bas de caisse, vrai plateau arrière pour le Kodiak.',
+      'Ciel étoilé plus naturel, et un son plus robuste qui ne peut plus se bloquer sur une valeur invalide.',
+    ],
+  },
   {
     version: '1.5.0',
     date: '2026-10-05',

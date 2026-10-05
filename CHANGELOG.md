@@ -2,6 +2,13 @@
 
 Les mêmes notes s'affichent dans le jeu (menu → « Nouveautés »). La source est `js/version.js`.
 
+## v1.6.0 — 05/10/2026 · Son, lumières et finition
+- Son moteur entièrement refait : caractère propre à chaque voiture (4, 5 ou 6 cylindres), sifflement et soupape de décharge du turbo, rupteur, coupure au passage des rapports.
+- Chuintement des pneus et gerbes d’eau derrière les roues sur route mouillée.
+- Effet de lueur (bloom) en qualité haute : phares, longues portées, néons, feux arrière et fumigènes brillent, surtout de nuit.
+- Voitures plus détaillées : montants de pare-brise et de lunette, joints de portes, bas de caisse, vrai plateau arrière pour le Kodiak.
+- Ciel étoilé plus naturel, et un son plus robuste qui ne peut plus se bloquer sur une valeur invalide.
+
 ## v1.5.0 — 05/10/2026 · Nouveaux pays, météo et Monte-Carlo
 - Monte-Carlo de jour : asphalte avec des plaques de neige et de verglas dans les virages à l’ombre, annoncées par le copilote. Le choix des pneus devient un vrai dilemme.
 - Col de Turini : la montée légendaire en 17 épingles vers le col enneigé, devant une foule immense.

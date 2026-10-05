@@ -259,7 +259,7 @@ export class World {
       }
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      const stars = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 4, sizeAttenuation: false, fog: false }));
+      const stars = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xc8d2e6, size: 1.6, sizeAttenuation: false, fog: false }));
       this.sky.add(stars);
     }
   }

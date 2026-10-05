@@ -16,7 +16,7 @@ export class AudioFX {
     this.master.gain.value = this.enabled ? 0.55 : 0;
     this.master.connect(ctx.destination);
 
-    // Moteur : deux oscillateurs filtrés + un peu de distorsion.
+    // Moteur : fondamentale + sous-harmonique + harmonique aiguë, saturées puis filtrées.
     this.engGain = ctx.createGain();
     this.engGain.gain.value = 0;
     this.engFilter = ctx.createBiquadFilter();
@@ -29,12 +29,21 @@ export class AudioFX {
     shaper.curve = curve;
     this.osc1 = ctx.createOscillator(); this.osc1.type = 'sawtooth';
     this.osc2 = ctx.createOscillator(); this.osc2.type = 'square';
+    this.osc3 = ctx.createOscillator(); this.osc3.type = 'sawtooth';
     const g2 = ctx.createGain(); g2.gain.value = 0.5;
-    this.osc1.connect(shaper); this.osc2.connect(g2); g2.connect(shaper);
+    this.g3 = ctx.createGain(); this.g3.gain.value = 0;
+    this.osc1.connect(shaper); this.osc2.connect(g2); g2.connect(shaper); this.osc3.connect(this.g3); this.g3.connect(shaper);
     shaper.connect(this.engFilter);
     this.engFilter.connect(this.engGain);
     this.engGain.connect(this.master);
-    this.osc1.start(); this.osc2.start();
+    this.osc1.start(); this.osc2.start(); this.osc3.start();
+    // Sifflement du turbo.
+    this.turbo = ctx.createOscillator(); this.turbo.type = 'sine';
+    this.turboGain = ctx.createGain(); this.turboGain.gain.value = 0;
+    this.turbo.connect(this.turboGain); this.turboGain.connect(this.master);
+    this.turbo.start();
+    this.boost = 0;
+    this.profile = { cyl: 4, turbo: false };
 
     // Bruit (gravier, vent).
     const len = ctx.sampleRate * 2;
@@ -53,6 +62,7 @@ export class AudioFX {
     };
     this.gravel = mkNoise('bandpass', 1800, 0.7);
     this.wind = mkNoise('lowpass', 500, 0.5);
+    this.hiss = mkNoise('highpass', 3500, 0.5); // pneus sur route mouillée
   }
 
   setEnabled(on) {
@@ -65,24 +75,64 @@ export class AudioFX {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
     if (!on) {
-      this.engGain.gain.setTargetAtTime(0, t, 0.1);
-      this.gravel.g.gain.setTargetAtTime(0, t, 0.1);
-      this.wind.g.gain.setTargetAtTime(0, t, 0.1);
+      for (const g of [this.engGain.gain, this.gravel.g.gain, this.wind.g.gain, this.hiss.g.gain, this.turboGain.gain]) g.setTargetAtTime(0, t, 0.1);
     }
   }
 
-  update(rpm, throttle, speed, slide, loose, airborne) {
+  // Caractère du moteur selon la voiture (nombre de cylindres, turbo).
+  setCar(car) {
+    const turbo = ['mistral', 'vortex', 'lionne', 'toundra', 'kodiak', 'fennec'].includes(car.id);
+    const cyl = { toundra: 6, kodiak: 6, corsaire: 4, berlinette: 4 }[car.id] || (car.id === 'vortex' || car.id === 'lionne' ? 5 : 4);
+    this.profile = { cyl, turbo };
+  }
+
+  update({ rpm, throttle, speed, slide, loose, airborne, wet = 0 }) {
     if (!this.ctx || !this.engineOn) return;
+    if (![rpm, throttle, speed, slide, loose].every(Number.isFinite)) return;
     const t = this.ctx.currentTime;
-    const f = 28 + (rpm / 7900) * 190;
+    const { cyl, turbo } = this.profile;
+    // Fréquence d'allumage : tr/min / 60 × cylindres / 2.
+    const f = Math.max(20, (rpm / 60) * (cyl / 2));
     this.osc1.frequency.setTargetAtTime(f, t, 0.03);
     this.osc2.frequency.setTargetAtTime(f * 0.5, t, 0.03);
+    this.osc3.frequency.setTargetAtTime(f * 2.01, t, 0.03);
+    this.g3.gain.setTargetAtTime(Math.max(0, (rpm - 3500) / 4400) * 0.35, t, 0.05);
     this.engFilter.frequency.setTargetAtTime(500 + throttle * 1800 + rpm * 0.15, t, 0.05);
-    this.engGain.gain.setTargetAtTime(0.13 + throttle * 0.13, t, 0.05);
+    // Rupteur : la voiture "bégaie" en haut du compte-tours.
+    const limiter = rpm > 7650 && throttle > 0.5 ? (Math.sin(t * 160) > 0 ? 0.4 : 1) : 1;
+    this.engGain.gain.setTargetAtTime((0.13 + throttle * 0.13) * limiter * (this.shiftDip > t ? 0.35 : 1), t, 0.02);
+    // Turbo : monte en pression à l'accélération, souffle quand on lâche.
+    if (turbo) {
+      const target = throttle > 0.5 && rpm > 3000 ? Math.min(1, (rpm - 3000) / 3500) : 0;
+      const prev = this.boost;
+      this.boost += (target - this.boost) * (target > this.boost ? 0.04 : 0.25);
+      this.turbo.frequency.setTargetAtTime(2200 + this.boost * 2600, t, 0.05);
+      this.turboGain.gain.setTargetAtTime(this.boost * 0.018, t, 0.05);
+      if (prev > 0.6 && throttle < 0.2 && !this.blowCooldown) { this.blowOff(); this.blowCooldown = true; }
+      if (throttle > 0.5) this.blowCooldown = false;
+    }
     const roll = airborne ? 0 : Math.min(speed / 30, 1);
-    this.gravel.g.gain.setTargetAtTime((roll * 0.08 + slide * 0.22) * loose, t, 0.08);
+    this.gravel.g.gain.setTargetAtTime((roll * 0.08 + slide * 0.22) * loose * (1 - wet * 0.5), t, 0.08);
     this.gravel.f.frequency.setTargetAtTime(900 + speed * 25, t, 0.1);
     this.wind.g.gain.setTargetAtTime(Math.min(speed / 55, 1) * 0.12, t, 0.1);
+    this.hiss.g.gain.setTargetAtTime(roll * wet * 0.1, t, 0.1);
+  }
+
+  // Petite coupure d'allumage au passage de rapport.
+  shift() { if (this.ctx) this.shiftDip = this.ctx.currentTime + 0.07; }
+
+  blowOff() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noiseBuf;
+    const f = this.ctx.createBiquadFilter();
+    f.type = 'bandpass'; f.frequency.setValueAtTime(2600, t); f.frequency.exponentialRampToValueAtTime(900, t + 0.35); f.Q.value = 1.2;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.12, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    src.connect(f); f.connect(g); g.connect(this.master);
+    src.start(t, Math.random()); src.stop(t + 0.4);
   }
 
   beep(freq = 660, dur = 0.18, vol = 0.3) {

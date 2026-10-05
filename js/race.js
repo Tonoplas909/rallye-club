@@ -10,6 +10,10 @@ import { CARS, PARTS, SURFACES, MEDALS } from './data.js';
 import { clamp, damp, lerp, wrapAngle, formatTime, formatDelta, mulberry32 } from './util.js';
 import { save } from './save.js';
 import { isTuned } from './debug.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { recommendedTyre, freshDamage, applyImpact, applyLanding, PARTS_DAMAGE, TYRES } from './gameplay.js';
 
 const DT = 1 / 120;
@@ -143,12 +147,24 @@ export class Race {
     this.bestSplits = save.data.splits[this.key] || [];
     this.medalTimes = MEDALS.map((m) => ({ ...m, time: Math.round(this.track.refTime * m.factor / 100) * 100 }));
 
+    // Lueur (bloom) des phares, néons et fumigènes, en qualité haute.
+    if (quality !== 'low') {
+      const r = app.renderer;
+      const size = r.getSize(new THREE.Vector2());
+      this.composer = new EffectComposer(r);
+      this.composer.addPass(new RenderPass(scene, this.camera));
+      this.bloom = new UnrealBloomPass(size, st.night ? 0.85 : 0.3, 0.5, st.night ? 0.55 : 0.9);
+      this.composer.addPass(this.bloom);
+      this.composer.addPass(new OutputPass());
+    }
+
     this.setupHud();
     this.resize();
     this.state = 'countdown';
     this.countdown = 3.6;
     this.cheated = isTuned() || !!app.debugAutopilot;
     this.lastBeep = 4;
+    this.app.audio.setCar(this.car);
     this.app.audio.setEngineActive(true);
   }
 
@@ -339,7 +355,15 @@ export class Race {
     this.updateVisuals(dt);
     this.updateCamera(dt);
     this.updateHud();
-    this.app.audio.update(this.phys.rpm, this.state === 'countdown' ? (this.throttleHeld ? 1 : 0) : ctrl.throttle, this.phys.speed, Math.max(this.phys.slide, Math.min(this.phys.spin, 1)), SURFACES[this.phys.surface].loose, this.phys.airborne);
+    this.app.audio.update({
+      rpm: this.phys.rpm,
+      throttle: this.state === 'countdown' ? (this.throttleHeld ? 1 : 0) : ctrl.throttle,
+      speed: this.phys.speed,
+      slide: Math.max(this.phys.slide, Math.min(this.phys.spin, 1)),
+      loose: SURFACES[this.phys.surface].loose,
+      airborne: this.phys.airborne,
+      wet: this.track.wetness,
+    });
   }
 
   collide() {
@@ -412,6 +436,7 @@ export class Race {
           if (e.air > 0.7) this.flash(`SAUT ${(e.air).toFixed(1)} s !`, 'info', 900);
         }
       } else if (e.type === 'shift' && e.up) {
+        this.app.audio.shift();
         if (this.flamesOn) this.backfire(6);
       }
     }
@@ -643,6 +668,12 @@ export class Race {
       const count = k * 60 * dt * (save.settings.quality === 'low' ? 0.5 : 1);
       let n = Math.floor(count) + (Math.random() < count % 1 ? 1 : 0);
       const fx = PFX[p.surface] || PFX.gravel;
+      // Gerbes d'eau sur route mouillée.
+      const wetK = this.track.wetness * clamp((speed - 8) / 20, 0, 1) * (w.front ? 0.4 : 1);
+      if (!p.airborne && wetK > 0 && Math.random() < wetK * 0.9) {
+        const mist = this._mistCol || (this._mistCol = new THREE.Color('#d6dee5'));
+        this.dust.emit(tmp.x, tmp.y + 0.15, tmp.z, -wvx * 0.25 + (Math.random() - 0.5) * 2, 0.6 + Math.random(), wvy * 0.25 + (Math.random() - 0.5) * 2, mist, 0.14, 0.4, 0.6, 1.6, 0.5);
+      }
       while (n-- > 0) {
         const r = () => (Math.random() - 0.5);
         this.dust.emit(
@@ -750,15 +781,21 @@ export class Race {
     const h = this.app.renderer.domElement.height;
     this.dust?.setScale(h, this.camera.fov);
     this.flames?.setScale(h, this.camera.fov);
+    if (this.composer) {
+      this.composer.setPixelRatio(this.app.renderer.getPixelRatio());
+      this.composer.setSize(window.innerWidth, window.innerHeight);
+    }
   }
 
   render(renderer) {
     this.dust.setScale(renderer.domElement.height, this.camera.fov);
     this.flames.setScale(renderer.domElement.height, this.camera.fov);
-    renderer.render(this.scene, this.camera);
+    if (this.composer) this.composer.render();
+    else renderer.render(this.scene, this.camera);
   }
 
   dispose() {
+    this.composer?.dispose();
     this.app.audio.setEngineActive(false);
     this.app.codriver.stop();
     clearTimeout(this._flashT);
