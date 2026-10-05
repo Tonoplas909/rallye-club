@@ -2,11 +2,11 @@
 
 Les mêmes notes s'affichent dans le jeu (menu → « Nouveautés »). La source est `js/version.js`.
 
-## v1.2.0 — 02/10/2026 · Comptes en ligne
-- Crée ton compte (bouton 👤 en haut) pour sauvegarder ta progression en ligne et la retrouver sur tous tes appareils.
-- Classement mondial pour chaque spéciale, défi du jour compris : ton meilleur temps y est envoyé à l'arrivée.
-- Le classement complet est consultable depuis la liste des spéciales (bouton 🏆).
-- Pseudo modifiable et réinitialisation du mot de passe par e-mail.
+## v1.2.0 — 02/10/2026 · Préparation des comptes en ligne
+- Le jeu est prêt à accueillir des comptes en ligne : sauvegarde sur tous tes appareils et classement mondial par spéciale.
+- Ils seront activés dans une prochaine mise à jour. En attendant, ta progression reste enregistrée sur cet appareil.
+
+Côté technique : schéma SQL, client Supabase et interface sont en place et testés sur un Supabase local. La connexion au projet en ligne est coupée (`enabled: false` dans `js/config.js`) tant que le projet est en pause.
 
 ## v1.1.0 — 02/10/2026 · En ligne et outils de test
 - Le jeu est jouable directement dans le navigateur via GitHub Pages.

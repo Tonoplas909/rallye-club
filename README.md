@@ -44,11 +44,13 @@ La progression est enregistrée dans le `localStorage` du navigateur.
 
 ## Comptes en ligne (Supabase)
 
-Le jeu peut fonctionner avec des comptes en ligne (inscription par e-mail et mot de passe, pseudo, sauvegarde de la progression dans le cloud sur tous les appareils, classement mondial par spéciale). Si `js/config.js` est vide, si le serveur ne répond pas, ou si les tables n'ont pas encore été créées, le bouton de compte reste caché et le jeu fonctionne entièrement hors ligne.
+Le jeu sait gérer des comptes en ligne : inscription par e-mail et mot de passe, pseudo, sauvegarde de la progression dans le cloud sur tous les appareils, classement mondial par spéciale.
 
-### Mise en service
+**État actuel : prêt mais pas connecté.** Le projet Supabase `harotewbjhmpvsltghyv` est en pause, donc `enabled: false` dans `js/config.js`. Dans ce cas, le jeu ne fait aucune requête vers Supabase, le bouton de compte reste caché et tout fonctionne hors ligne. Même avec `enabled: true`, le jeu repasse hors ligne sans erreur si le serveur ne répond pas ou si les tables n'existent pas.
 
-1. Dans l'organisation Supabase, créer un projet (région Europe, par exemple `eu-west-3` Paris).
+### Mise en service (le jour où le projet est réactivé)
+
+1. Réactiver le projet dans le tableau de bord Supabase (ou en créer un nouveau, région Europe, par exemple `eu-west-3` Paris).
 2. Créer les tables :
    - **soit** coller le contenu de `supabase/migrations/20261002000000_comptes_en_ligne.sql` dans *SQL Editor* puis cliquer sur *Run* ;
    - **soit**, avec la CLI : `npx supabase login`, `npx supabase link --project-ref <ref-du-projet>`, puis `npx supabase db push`.
@@ -56,7 +58,9 @@ Le jeu peut fonctionner avec des comptes en ligne (inscription par e-mail et mot
    - **Site URL** : `https://tonoplas909.github.io/rallye-club/`
    - **Redirect URLs** : ajouter `https://tonoplas909.github.io/rallye-club/` et `http://localhost:8080` (développement).
 4. *Project Settings → API Keys* : l'**URL du projet** et la clé **publishable** (ou l'ancienne clé `anon`) vont dans `js/config.js`. C'est déjà fait pour le projet `harotewbjhmpvsltghyv`. Ne jamais y mettre la clé `secret` / `service_role`.
-5. (Recommandé) *Authentication → Emails* : traduire les e-mails de confirmation et de réinitialisation en français. Avant l'ouverture au public, configurer un SMTP personnalisé : le service d'e-mail fourni par défaut est limité à quelques envois par heure.
+5. Dans `js/config.js`, passer `enabled` à `true`, puis commiter et pousser : GitHub Pages republie le jeu et le bouton 👤 apparaît.
+6. Mettre à jour les notes de version dans `js/version.js` et `CHANGELOG.md` pour annoncer l'arrivée des comptes.
+7. (Recommandé) *Authentication → Emails* : traduire les e-mails de confirmation et de réinitialisation en français. Avant l'ouverture au public, configurer un SMTP personnalisé : le service d'e-mail fourni par défaut est limité à quelques envois par heure.
 
 ### Ce qui est stocké
 

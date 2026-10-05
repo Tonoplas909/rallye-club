@@ -33,7 +33,7 @@ function frError(err) {
 
 export class Online {
   constructor() {
-    this.enabled = !!(SUPABASE.url && SUPABASE.anonKey);
+    this.enabled = !!(SUPABASE.enabled && SUPABASE.url && SUPABASE.anonKey);
     this.client = null;
     this.user = null;
     this.profile = null;

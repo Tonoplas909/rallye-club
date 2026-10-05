@@ -158,6 +158,7 @@ export class DebugPanel {
     const lines = [
       `FPS ${this.fps.toFixed(0)}   appels ${info.calls}   triangles ${(info.triangles / 1000).toFixed(0)} k`,
       `Écran ${app.mode === 'race' ? 'course' : app.screen}   pièces ${save.coins}`,
+      `Comptes en ligne : ${app.online?.status === 'disabled' ? 'désactivés' : app.online?.loggedIn ? `connecté (${app.online.profile?.pseudo ?? '…'}), ${app.online.status}` : 'non connecté'}`,
     ];
     if (r && r.phys) {
       const p = r.phys, t = r.track;

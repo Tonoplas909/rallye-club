@@ -6,12 +6,10 @@ export const RELEASES = [
   {
     version: '1.2.0',
     date: '2026-10-02',
-    title: 'Comptes en ligne',
+    title: 'Préparation des comptes en ligne',
     notes: [
-      'Crée ton compte (bouton 👤 en haut) pour sauvegarder ta progression en ligne et la retrouver sur tous tes appareils.',
-      'Classement mondial pour chaque spéciale, défi du jour compris : ton meilleur temps y est envoyé à l’arrivée.',
-      'Le classement complet est consultable depuis la liste des spéciales (bouton 🏆).',
-      'Pseudo modifiable et réinitialisation du mot de passe par e-mail.',
+      'Le jeu est prêt à accueillir des comptes en ligne : sauvegarde sur tous tes appareils et classement mondial par spéciale.',
+      'Ils seront activés dans une prochaine mise à jour. En attendant, ta progression reste enregistrée sur cet appareil.',
     ],
   },
   {
